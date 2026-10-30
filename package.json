@@ -15,7 +15,8 @@
     "audit": "tsx src/cli/audit.ts",
     "eval": "tsx src/cli/eval.ts",
     "regrade": "tsx src/cli/regrade.ts",
-    "check": "npm run typecheck && npm test && npm run audit"
+    "check": "npm run typecheck && npm test && npm run audit",
+    "chaos": "tsx src/cli/chaos.ts"
   },
   "devDependencies": {
     "@types/node": "^25.9.9",
