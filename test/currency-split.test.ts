@@ -30,6 +30,15 @@ describe("currency-split answer key", () => {
     });
   });
 
+  it("IQD: ISO 4217 says three decimals, even though CLDR rounds it to whole dinars", () => {
+    // 1500250 + 499750 = 2000000 fils, discount 1000 -> 750.125/249.875 -> floors 750/249, 1 left -> line 2 -> 750/250
+    // nets 1499500/499500 -> fees 43485.5->43486, 14485.5->14486 (half up)
+    assert.deepEqual(splitOrder({ currency: "IQD", lines: [{ sellerId: "s1", amount: "1500.25" }, { sellerId: "s2", amount: "499.75" }], discount: "1" }), {
+      platformFee: 43486 + 14486,
+      payouts: { s1: 1499500 - 43486, s2: 499500 - 14486 },
+    });
+  });
+
   it("parses minor units without floating point", () => {
     assert.equal(toMinor("4.35", "USD"), 435);
     assert.equal(toMinor("1500", "JPY"), 1500);
