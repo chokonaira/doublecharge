@@ -37,7 +37,10 @@ export async function checkout(orderId: string, ctx: Ctx): Promise<"paid" | "dec
       return "paid";
     } catch (err) {
       if (errorCode(err) === "card_declined") {
-        await ctx.db.update<Order>(key, (o) => (o!.status === "paid" || (o!.attempt ?? 0) !== attempt ? o! : { ...o!, status: "declined" }));
+        const now = await ctx.db.update<Order>(key, (o) => (o!.status === "paid" || (o!.attempt ?? 0) !== attempt ? o! : { ...o!, status: "declined" }));
+        // Answer from the order as it is now: a later attempt may have charged the customer meanwhile.
+        if (now.status === "paid") return "paid";
+        if ((now.attempt ?? 0) !== attempt) throw new Error("a newer payment attempt is in progress; ask again");
         return "declined";
       }
       // A timeout may or may not have charged the card: never treat it as a decline.

@@ -40,7 +40,7 @@ async function handleOnce(event: PayCoEvent, ctx: Ctx): Promise<void> {
   if (delta !== 0) await ctx.db.update<number>(`balance:${order.sellerId}`, (balance = 0) => balance + delta);
 
   // Status only moves forward: pending -> paid -> refunded.
-  await ctx.db.update<Order>(`order:${orderId}`, (o) => ({ ...o!, status: fullyRefunded || o!.status === "refunded" ? "refunded" : "paid" }));
+  const now = await ctx.db.update<Order>(`order:${orderId}`, (o) => ({ ...o!, status: fullyRefunded || o!.status === "refunded" ? "refunded" : "paid" }));
 
-  if (!fullyRefunded) await ctx.shipping.ship(orderId, { idempotencyKey: `ship:${orderId}` });
+  if (now.status === "paid") await ctx.shipping.ship(orderId, { idempotencyKey: `ship:${orderId}` });
 }
