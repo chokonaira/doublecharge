@@ -1,4 +1,7 @@
-import { errorCode, type Ctx } from "../../src/world/index.ts";
+// Bug: race-free and idempotent, but the reservation and the record of the request are two separate
+// writes. If the instance dies between them, the retry finds a request stuck in "reserving" and waits
+// for an attempt that will never finish.
+import { errorCode, type Ctx } from "../../../src/world/index.ts";
 
 type Result = "paid_out" | "insufficient_funds" | "rejected";
 
