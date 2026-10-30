@@ -2,6 +2,16 @@ import { ApiError } from "./errors.ts";
 import { clone, record, show, tick } from "./runtime.ts";
 import type { Charge, CreateChargeParams, CreatePayoutParams, Fault, PayCoApi, Payout } from "./types.ts";
 
+/** JSON with object keys sorted at every level, so parameter order never changes a fingerprint. */
+function canonical(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
 interface StoredResult {
   fingerprint: string;
   result?: unknown;
@@ -106,7 +116,7 @@ export class PayCo implements PayCoApi {
       record(call, "timeout (never reached PayCo)");
       throw new ApiError("timeout");
     }
-    const fingerprint = JSON.stringify(params);
+    const fingerprint = canonical(params);
     const slot = key === undefined ? undefined : `${op}:${key}`;
     if (slot) {
       const previous = this.keys.get(slot);

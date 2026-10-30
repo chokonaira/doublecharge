@@ -19,6 +19,14 @@ describe("PayCo idempotency", () => {
     await assert.rejects(payco.createCharge({ ...charge, amount: 501, idempotencyKey: "k" }), (e) => errorCode(e) === "idempotency_mismatch");
   });
 
+  it("treats the same parameters in a different order, or with undefined fields, as the same request", async () => {
+    const payco = new PayCo();
+    await payco.createCharge({ amount: 500, currency: "EUR", customerId: "cus_1", metadata: { a: "1", b: "2" }, idempotencyKey: "k" });
+    await payco.createCharge({ customerId: "cus_1", currency: "EUR", amount: 500, metadata: { b: "2", a: "1" }, idempotencyKey: "k" });
+    await payco.createCharge({ customerId: "cus_1", currency: "EUR", amount: 500, metadata: { b: "2", a: "1" }, idempotencyKey: "k", ...{ extra: undefined } });
+    assert.equal(payco.charges.length, 1);
+  });
+
   it("replays a decline for the same key", async () => {
     const payco = new PayCo({ createCharge: ["decline"] });
     await assert.rejects(payco.createCharge({ ...charge, idempotencyKey: "k" }), (e) => errorCode(e) === "card_declined");
