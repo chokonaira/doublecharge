@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { errorCode, MemoryDb, PayCo, Shipping } from "../src/world/index.ts";
+import { asInvocation, callsSincePlan, errorCode, InstanceCrashed, MemoryDb, PayCo, planCrash, Shipping } from "../src/world/index.ts";
 
 const charge = { amount: 500, currency: "EUR", customerId: "cus_1" };
 
@@ -127,5 +127,84 @@ describe("PayCo scenario controls", () => {
     const created = await payco.createCharge(charge);
     payco.setRefunded(created.id, 200);
     assert.equal((await payco.getCharge(created.id)).amountRefunded, 200);
+  });
+});
+
+describe("MemoryDb transactions", () => {
+  it("commits every write at once and returns the result", async () => {
+    const db = new MemoryDb({ a: 1 });
+    const result = await db.transaction((tx) => {
+      tx.set("a", (tx.get<number>("a") ?? 0) + 1);
+      tx.set("b", tx.get<number>("a"));
+      tx.delete("missing");
+      return "done";
+    });
+    assert.equal(result, "done");
+    assert.deepEqual([db.peek("a"), db.peek("b")], [2, 2]);
+  });
+
+  it("writes nothing when the function throws", async () => {
+    const db = new MemoryDb({ a: 1 });
+    await assert.rejects(
+      db.transaction((tx) => {
+        tx.set("a", 2);
+        tx.delete("a");
+        throw new Error("abort");
+      }),
+    );
+    assert.equal(db.peek("a"), 1);
+  });
+
+  it("serialises concurrent transactions", async () => {
+    const db = new MemoryDb({ n: 0 });
+    const bump = () => db.transaction((tx) => tx.set("n", (tx.get<number>("n") ?? 0) + 1));
+    await Promise.all([bump(), bump(), bump()]);
+    assert.equal(db.peek("n"), 3);
+  });
+});
+
+describe("instance crashes", () => {
+  it("before: the call never happens and the caller sees a dropped connection", async () => {
+    const db = new MemoryDb();
+    planCrash({ at: 2, mode: "before" });
+    await assert.rejects(
+      asInvocation(async () => {
+        await db.set("first", 1);
+        await db.set("second", 2);
+      }),
+      InstanceCrashed,
+    );
+    planCrash(undefined);
+    assert.deepEqual([db.peek("first"), db.peek("second")], [1, undefined]);
+  });
+
+  it("after: the call happens, and a solution that swallows the crash still cannot act or answer", async () => {
+    const db = new MemoryDb();
+    planCrash({ at: 1, mode: "after" });
+    await assert.rejects(
+      asInvocation(async () => {
+        try {
+          await db.set("charged", true);
+        } catch {
+          await db.set("refunded", true).catch(() => {}); // a dead instance cannot do anything more
+        }
+        return "paid";
+      }),
+      InstanceCrashed,
+    );
+    planCrash(undefined);
+    assert.deepEqual([db.peek("charged"), db.peek("refunded")], [true, undefined]);
+  });
+
+  it("only the instance that made the call dies, and calls outside the solution are not counted", async () => {
+    const db = new MemoryDb();
+    await db.set("setup", 1);
+    planCrash({ at: 1, mode: "before" });
+    const [a, b] = await Promise.allSettled([asInvocation(() => db.set("a", 1)), asInvocation(() => db.set("b", 1))]);
+    planCrash(undefined);
+    assert.equal(a.status, "rejected");
+    assert.equal(b.status, "fulfilled");
+    assert.equal(db.peek("b"), 1);
+    assert.equal(callsSincePlan(), 0);
   });
 });

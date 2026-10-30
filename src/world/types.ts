@@ -7,7 +7,16 @@ export interface Db {
   insertIfAbsent<T>(key: string, value: T): Promise<boolean>;
   /** Atomic read-modify-write of a single key. fn must be synchronous; if it throws, nothing is written. */
   update<T>(key: string, fn: (current: T | undefined) => T): Promise<T>;
+  /** Atomically reads and writes any number of keys. fn must be synchronous; if it throws, nothing is written. */
+  transaction<T>(fn: (tx: Tx) => T): Promise<T>;
   delete(key: string): Promise<void>;
+}
+
+/** The view of the Db inside a transaction. Reads see the transaction's own writes. */
+export interface Tx {
+  get<T>(key: string): T | undefined;
+  set<T>(key: string, value: T): void;
+  delete(key: string): void;
 }
 
 export interface Charge {

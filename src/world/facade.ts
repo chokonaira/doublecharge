@@ -1,4 +1,4 @@
-import type { CreateChargeParams, CreatePayoutParams, Ctx, Db, PayCoApi, ShippingApi } from "./types.ts";
+import type { CreateChargeParams, CreatePayoutParams, Ctx, Db, PayCoApi, ShippingApi, Tx } from "./types.ts";
 
 /**
  * What model code receives: the documented methods only, frozen, with no path back to the
@@ -19,6 +19,9 @@ export function facade(world: { db: Db; payco: PayCoApi; shipping: ShippingApi }
       },
       update<T>(key: string, fn: (current: T | undefined) => T) {
         return db.update(key, fn);
+      },
+      transaction<T>(fn: (tx: Tx) => T) {
+        return db.transaction(fn);
       },
       delete(key: string) {
         return db.delete(key);
