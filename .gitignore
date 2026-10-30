@@ -4,5 +4,10 @@
 !.env.example
 
 node_modules/
-dist/
 .DS_Store
+
+# local eval runs (published results live in results/)
+runs/
+
+# throwaway experiments
+spike/
