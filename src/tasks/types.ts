@@ -58,11 +58,17 @@ export function entryOf<F extends EntryFn>(mod: Record<string, unknown>, name: s
   return fn as F;
 }
 
+/**
+ * The solution's entry point, with every call served by a fresh module instance that can be killed
+ * mid-request (see asInvocation).
+ */
+export function freshInstancePerCall<F extends EntryFn>(load: Loader, entry: string): F {
+  return ((...args: never[]) => busy(load()).then((mod) => asInvocation(async () => entryOf<F>(mod, entry)(...args)))) as unknown as F;
+}
+
 /** Binds a typed task spec to untyped solution modules: the one place the entry function is cast. */
 export function defineTask<F extends EntryFn>(spec: TaskSpec<F>): Task {
-  const perCall = (load: Loader) =>
-    ((...args: never[]) =>
-      busy(load()).then((mod) => asInvocation(async () => entryOf<F>(mod, spec.entry)(...args)))) as unknown as F;
+  const perCall = (load: Loader) => freshInstancePerCall<F>(load, spec.entry);
   return {
     id: spec.id,
     title: spec.title,
