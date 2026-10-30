@@ -14,6 +14,7 @@
     "test": "tsx --test \"test/**/*.test.ts\"",
     "audit": "tsx src/cli/audit.ts",
     "eval": "tsx src/cli/eval.ts",
+    "regrade": "tsx src/cli/regrade.ts",
     "check": "npm run typecheck && npm test && npm run audit"
   },
   "devDependencies": {
