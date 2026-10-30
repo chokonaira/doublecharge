@@ -16,9 +16,10 @@ async function runAttack(attack: Attack, world: AttackWorld): Promise<Outcome> {
     if (pause) pauseOnce({ actor: request.id, when: pause.when, call: callMatcher(pause.call, pause.occurrence), run: () => runSteps(pause.meanwhile) });
     for (let attempt = 0; attempt <= request.retries; attempt++) {
       if (attempt > 0) await waitBeforeRetry();
+      const label = attempt === 0 ? request.id : `${request.id} retry ${attempt}`;
       try {
-        const value = await asActor(attempt === 0 ? request.id : `${request.id} retry ${attempt}`, () => world.perform(request));
-        world.answered(request, value);
+        const value = await asActor(label, () => world.perform(request));
+        world.answered(request, value, label);
         return;
       } catch (e) {
         if (e instanceof AttackInvalid) throw e;
@@ -69,13 +70,14 @@ export function rules(conditions: [holds: boolean, broken: string][]): Outcome {
 export async function repeatUntilAnswered(
   label: string,
   attempt: () => Promise<unknown>,
-  onAnswer: (value: unknown) => void,
+  onAnswer: (value: unknown, attemptLabel: string) => void,
   attempts = 5,
 ): Promise<boolean> {
   for (let i = 0; i < attempts; i++) {
     await waitBeforeRetry();
+    const name = `${label} settle ${i + 1}`;
     try {
-      onAnswer(await asActor(`${label} settle ${i + 1}`, attempt));
+      onAnswer(await asActor(name, attempt), name);
       return true;
     } catch {
       // still no answer

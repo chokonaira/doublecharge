@@ -15,6 +15,8 @@ export async function withdraw(
 
 `wallet:<userId>` holds the user's balance in euro cents, as a plain number. Other services read and write this key, so keep that format.
 
+`amount` is always a whole number of cents, at least 1. The app validates it before calling `withdraw`.
+
 ## Requirements
 
 - Send the money to the user's bank with a PayCo payout (`destination` is the userId, currency `"EUR"`), take the same amount off the wallet and return `"paid_out"`.
