@@ -98,3 +98,26 @@ describe("Shipping", () => {
     assert.equal(shipping.count("o1"), 1);
   });
 });
+
+describe("PayCo scenario controls", () => {
+  it("rejects payouts with payout_rejected and moves no money", async () => {
+    const payco = new PayCo({ createPayout: ["decline"] });
+    await assert.rejects(payco.createPayout({ amount: 100, currency: "EUR", destination: "u1" }), (e) => errorCode(e) === "payout_rejected");
+    assert.equal(payco.payouts.length, 0);
+  });
+
+  it("clearFaults ends an outage", async () => {
+    const payco = new PayCo({ createCharge: ["timeout_before", "timeout_before"] });
+    await assert.rejects(payco.createCharge(charge));
+    payco.clearFaults();
+    await payco.createCharge(charge);
+    assert.equal(payco.charges.length, 1);
+  });
+
+  it("setRefunded is visible through getCharge", async () => {
+    const payco = new PayCo();
+    const created = await payco.createCharge(charge);
+    payco.setRefunded(created.id, 200);
+    assert.equal((await payco.getCharge(created.id)).amountRefunded, 200);
+  });
+});

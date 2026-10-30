@@ -68,5 +68,9 @@ export interface PayCoEvent {
   data: { charge: Charge };
 }
 
-/** What happens to one API call. timeout_after: the call is processed, but the response is lost. */
+/**
+ * What happens to one API call.
+ * timeout_before: lost before reaching the service. timeout_after: processed, but the response is lost.
+ * decline: rejected by the card network or bank (card_declined for charges, payout_rejected for payouts).
+ */
 export type Fault = "ok" | "timeout_before" | "timeout_after" | "decline";

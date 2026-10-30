@@ -31,7 +31,7 @@ export class PayCo implements PayCoApi {
   }
 
   createCharge({ idempotencyKey, ...params }: CreateChargeParams): Promise<Charge> {
-    return this.call("charge", idempotencyKey, params, this.faults.createCharge?.shift(), () => {
+    return this.call("charge", "card_declined", idempotencyKey, params, this.faults.createCharge?.shift(), () => {
       const charge: Charge = {
         id: `ch_${++this.seq}`,
         amount: params.amount,
@@ -48,7 +48,7 @@ export class PayCo implements PayCoApi {
   }
 
   createPayout({ idempotencyKey, ...params }: CreatePayoutParams): Promise<Payout> {
-    return this.call("payout", idempotencyKey, params, this.faults.createPayout?.shift(), () => {
+    return this.call("payout", "payout_rejected", idempotencyKey, params, this.faults.createPayout?.shift(), () => {
       const payout: Payout = { id: `po_${++this.seq}`, ...params, created: this.seq };
       this.allPayouts.push(payout);
       return payout;
@@ -77,14 +77,27 @@ export class PayCo implements PayCoApi {
     return this.allPayouts;
   }
 
-  /** Scenario control: marks a charge refunded on PayCo's side. */
-  refundOutOfBand(chargeId: string): void {
+  /** Scenario control: sets the total refunded on a charge, as if refunds happened in PayCo's dashboard. */
+  setRefunded(chargeId: string, totalRefunded: number): void {
     const charge = this.allCharges.find((c) => c.id === chargeId);
     if (!charge) throw new Error(`no charge ${chargeId}`);
-    charge.amountRefunded = charge.amount;
+    charge.amountRefunded = totalRefunded;
   }
 
-  private async call<T>(op: string, key: string | undefined, params: object, fault: Fault = "ok", perform: () => T): Promise<T> {
+  /** Scenario control: ends an outage by dropping any faults not yet consumed. */
+  clearFaults(): void {
+    this.faults.createCharge?.splice(0);
+    this.faults.createPayout?.splice(0);
+  }
+
+  private async call<T>(
+    op: string,
+    declineCode: string,
+    key: string | undefined,
+    params: object,
+    fault: Fault = "ok",
+    perform: () => T,
+  ): Promise<T> {
     await tick();
     if (fault === "timeout_before") throw new ApiError("timeout");
     const fingerprint = JSON.stringify(params);
@@ -98,8 +111,8 @@ export class PayCo implements PayCoApi {
       }
     }
     if (fault === "decline") {
-      if (slot) this.keys.set(slot, { fingerprint, error: "card_declined" });
-      throw new ApiError("card_declined");
+      if (slot) this.keys.set(slot, { fingerprint, error: declineCode });
+      throw new ApiError(declineCode);
     }
     const result = perform();
     if (slot) this.keys.set(slot, { fingerprint, result: clone(result) });
