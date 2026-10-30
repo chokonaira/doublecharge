@@ -1,4 +1,4 @@
-import type { Ctx, PayCoEvent } from "/Users/henryokonkwo/Desktop/doublecharge/src/world/index.ts";
+import type { Ctx, PayCoEvent } from "../../../src/world/index.ts";
 
 interface Order {
   id: string;

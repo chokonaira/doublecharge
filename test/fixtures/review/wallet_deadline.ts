@@ -1,4 +1,4 @@
-import { errorCode, type Ctx } from "/Users/henryokonkwo/Desktop/doublecharge/src/world/index.ts";
+import { errorCode, type Ctx } from "../../../src/world/index.ts";
 
 type Result = "paid_out" | "insufficient_funds" | "rejected";
 

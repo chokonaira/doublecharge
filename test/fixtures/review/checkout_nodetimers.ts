@@ -1,5 +1,5 @@
 import { setTimeout as nodeSetTimeout } from "node:timers";
-import { errorCode, type Ctx } from "/Users/henryokonkwo/Desktop/doublecharge/src/world/index.ts";
+import { errorCode, type Ctx } from "../../../src/world/index.ts";
 
 interface Order {
   id: string;
