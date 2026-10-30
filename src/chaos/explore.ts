@@ -1,5 +1,5 @@
 import type { Loader, Outcome, Scenario } from "../tasks/types.ts";
-import { startTrace, stopTrace, useScheduler, beginRun, type TraceEntry } from "../world/index.ts";
+import { beginRun, pausesInProgress, startTrace, stopTrace, useScheduler, type TraceEntry } from "../world/index.ts";
 import { seededRandom } from "./rng.ts";
 import { ControlledScheduler, type Pick } from "./scheduler.ts";
 
@@ -41,7 +41,10 @@ export async function runScheduled(scenario: Scenario, load: Loader, pick: Pick,
       scenario.run(load),
       livelock,
       new Promise<Outcome>((resolve) => {
-        timer = realTimeout(() => resolve({ pass: false, detail: `timed out after ${timeoutMs}ms` }), timeoutMs);
+        timer = realTimeout(
+          () => resolve({ pass: false, detail: `timed out after ${timeoutMs}ms${pausesInProgress() > 0 ? " while a pause was active" : ""}` }),
+          timeoutMs,
+        );
       }),
     ]);
     return { outcome, choices: [...scheduler.choices], trace: [...trace] };

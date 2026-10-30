@@ -129,26 +129,28 @@ export class PayCo implements PayCoApi {
     }
     const fingerprint = canonical(params);
     const slot = key === undefined ? undefined : `${op}:${key}`;
-    if (slot) {
-      const previous = this.keys.get(slot);
-      if (previous) {
-        if (previous.fingerprint !== fingerprint) {
-          record(call, "idempotency_mismatch", n);
-          throw new ApiError("idempotency_mismatch");
-        }
-        record(call, `replayed ${previous.error ?? "original result"}`, n);
-        if (previous.error) throw new ApiError(previous.error);
-        return clone(previous.result as T);
-      }
+    const previous = slot ? this.keys.get(slot) : undefined;
+    if (previous && previous.fingerprint !== fingerprint) {
+      record(call, "idempotency_mismatch", n);
+      await pausePoint(call, "after");
+      throw new ApiError("idempotency_mismatch");
+    }
+    if (previous) {
+      record(call, `replayed ${previous.error ?? "original result"}`, n);
+      await pausePoint(call, "after");
+      if (previous.error) throw new ApiError(previous.error);
+      return clone(previous.result as T);
     }
     if (fault === "decline") {
       if (slot) this.keys.set(slot, { fingerprint, error: declineCode });
       record(call, declineCode, n);
+      await pausePoint(call, "after");
       throw new ApiError(declineCode);
     }
     const result = perform();
     if (slot) this.keys.set(slot, { fingerprint, result: clone(result) });
     record(call, fault === "timeout_after" ? "processed, but the response was lost (timeout)" : "processed", n);
+    await pausePoint(call, "after");
     await tick();
     if (fault === "timeout_after") throw new ApiError("timeout");
     return clone(result);
