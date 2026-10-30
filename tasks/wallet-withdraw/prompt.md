@@ -13,7 +13,7 @@ export async function withdraw(
 
 ## Data
 
-`wallet:<userId>` holds the user's balance in euro cents.
+`wallet:<userId>` holds the user's balance in euro cents, as a plain number. Other services read and write this key, so keep that format.
 
 ## Requirements
 

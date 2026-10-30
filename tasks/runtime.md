@@ -65,6 +65,8 @@ interface Payout {
 
 `createCharge` and `createPayout` accept an optional `idempotencyKey`. When PayCo receives a request with a key it has already seen, it returns the result of the first request, including its error if the first request failed, without performing the operation again. Reusing a key with different parameters fails with `idempotency_mismatch`.
 
+A request that timed out before PayCo processed it is not recorded against its key, so retrying a timed-out request with the same key is always safe: PayCo either processes it now or returns the result it already recorded.
+
 ### Error codes
 
 | code | meaning |
