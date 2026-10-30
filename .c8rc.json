@@ -1,0 +1,26 @@
+{
+  "all": true,
+  "src": [
+    "src",
+    "tasks"
+  ],
+  "include": [
+    "src/**/*.ts",
+    "tasks/**/*.ts"
+  ],
+  "exclude": [
+    "tasks/*/mutants/**",
+    "src/world/types.ts",
+    "src/report/records.ts"
+  ],
+  "reporter": [
+    "text",
+    "text-summary",
+    "lcov"
+  ],
+  "report-dir": "coverage",
+  "check-coverage": true,
+  "lines": 90,
+  "functions": 85,
+  "branches": 85
+}

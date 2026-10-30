@@ -11,3 +11,6 @@ runs/
 
 # throwaway experiments
 spike/
+
+# coverage reports
+coverage/

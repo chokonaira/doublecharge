@@ -16,10 +16,12 @@
     "eval": "tsx src/cli/eval.ts",
     "regrade": "tsx src/cli/regrade.ts",
     "check": "npm run typecheck && npm test && npm run audit",
-    "chaos": "tsx src/cli/chaos.ts"
+    "chaos": "tsx src/cli/chaos.ts",
+    "coverage": "c8 npm test"
   },
   "devDependencies": {
     "@types/node": "^25.9.9",
+    "c8": "^12.0.0",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3"
   }
