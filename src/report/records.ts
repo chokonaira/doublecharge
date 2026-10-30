@@ -18,4 +18,6 @@ export interface TrialRecord {
   cost: number;
   ms: number;
   servedBy?: { model: string; provider: string | undefined };
+  /** Graded trials only: passed every scenario and survived its instance being killed at every step. */
+  crashSafe?: boolean;
 }
