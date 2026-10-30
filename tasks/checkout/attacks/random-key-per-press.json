@@ -1,0 +1,15 @@
+{
+  "summary": "A double click charges twice: each press uses a new idempotency key.",
+  "steps": [
+    [
+      {
+        "id": "A",
+        "action": "pay"
+      },
+      {
+        "id": "B",
+        "action": "pay"
+      }
+    ]
+  ]
+}

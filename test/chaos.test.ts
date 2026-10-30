@@ -77,7 +77,7 @@ describe("crash exploration", () => {
 
   it("only scenarios whose callers retry are crash-eligible", () => {
     assert.ok(duplicate.crash);
-    assert.equal(walletTask.scenarios.find((s) => s.name === "payout went through, response lost, user closed the app")?.crash, false);
+    assert.equal(walletTask.scenarios.find((s) => s.name === "payout went through, response lost, user closed the app and withdrew the rest")?.crash, false);
   });
 
   it("the reference survives its instance being killed before and after every call", async () => {

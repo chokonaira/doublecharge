@@ -1,0 +1,18 @@
+{
+  "summary": "The instance dies between claiming the request and reserving the money; every retry waits forever.",
+  "steps": [
+    [
+      {
+        "id": "A",
+        "action": "withdraw",
+        "requestId": "r1",
+        "amount": 3000,
+        "crash": {
+          "when": "after",
+          "call": "db.insertIfAbsent",
+          "occurrence": 1
+        }
+      }
+    ]
+  ]
+}

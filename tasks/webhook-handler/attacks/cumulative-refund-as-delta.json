@@ -1,0 +1,42 @@
+{
+  "summary": "Two partial refunds subtract 300 and then the cumulative 1000.",
+  "steps": [
+    [
+      {
+        "id": "S",
+        "action": "deliver",
+        "event": "charge.succeeded"
+      }
+    ],
+    [
+      {
+        "id": "X1",
+        "action": "refund",
+        "total": 300
+      }
+    ],
+    [
+      {
+        "id": "R1",
+        "action": "deliver",
+        "event": "charge.refunded",
+        "refundedTotal": 300
+      }
+    ],
+    [
+      {
+        "id": "X2",
+        "action": "refund",
+        "total": 1000
+      }
+    ],
+    [
+      {
+        "id": "R2",
+        "action": "deliver",
+        "event": "charge.refunded",
+        "refundedTotal": 1000
+      }
+    ]
+  ]
+}

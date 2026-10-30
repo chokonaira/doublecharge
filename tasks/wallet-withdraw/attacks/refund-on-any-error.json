@@ -1,0 +1,26 @@
+{
+  "summary": "A lost payout response puts the money back although it was paid; the user withdraws it again.",
+  "faults": {
+    "createPayout": [
+      "timeout_after"
+    ]
+  },
+  "steps": [
+    [
+      {
+        "id": "A",
+        "action": "withdraw",
+        "requestId": "r1",
+        "amount": 3000
+      }
+    ],
+    [
+      {
+        "id": "B",
+        "action": "withdraw",
+        "requestId": "r2",
+        "amount": 10000
+      }
+    ]
+  ]
+}

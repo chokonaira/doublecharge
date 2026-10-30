@@ -1,0 +1,19 @@
+{
+  "summary": "A redelivered success event credits the seller twice.",
+  "steps": [
+    [
+      {
+        "id": "S1",
+        "action": "deliver",
+        "event": "charge.succeeded"
+      }
+    ],
+    [
+      {
+        "id": "S2",
+        "action": "deliver",
+        "event": "charge.succeeded"
+      }
+    ]
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "summary": "The event is claimed before shipping; shipping fails, and every redelivery skips it, so the order never ships.",
+  "faults": {
+    "ship": [
+      "timeout_before"
+    ]
+  },
+  "steps": [
+    [
+      {
+        "id": "S",
+        "action": "deliver",
+        "event": "charge.succeeded"
+      }
+    ]
+  ]
+}

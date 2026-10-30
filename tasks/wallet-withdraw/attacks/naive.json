@@ -1,0 +1,19 @@
+{
+  "summary": "Two withdrawals read the same balance and both pay out.",
+  "steps": [
+    [
+      {
+        "id": "A",
+        "action": "withdraw",
+        "requestId": "r1",
+        "amount": 6000
+      },
+      {
+        "id": "B",
+        "action": "withdraw",
+        "requestId": "r2",
+        "amount": 6000
+      }
+    ]
+  ]
+}

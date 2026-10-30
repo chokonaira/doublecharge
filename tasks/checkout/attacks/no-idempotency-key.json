@@ -1,0 +1,17 @@
+{
+  "summary": "A retry after a lost response charges the card a second time.",
+  "faults": {
+    "createCharge": [
+      "timeout_after"
+    ]
+  },
+  "steps": [
+    [
+      {
+        "id": "A",
+        "action": "pay",
+        "retries": 1
+      }
+    ]
+  ]
+}
