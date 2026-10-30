@@ -33,11 +33,13 @@ export async function runScheduled(scenario: Scenario, load: Loader, pick: Pick,
   const trace = startTrace();
   useScheduler(scheduler);
   const driving = scheduler.drive();
+  // Begin the run before the scenario starts: the scenario may register pauses as it sets up.
+  const livelock = beginRun();
   let timer: NodeJS.Timeout | undefined;
   try {
     const outcome = await Promise.race([
       scenario.run(load),
-      beginRun(),
+      livelock,
       new Promise<Outcome>((resolve) => {
         timer = realTimeout(() => resolve({ pass: false, detail: `timed out after ${timeoutMs}ms` }), timeoutMs);
       }),

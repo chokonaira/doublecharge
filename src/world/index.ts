@@ -11,6 +11,8 @@ export {
   clone,
   enter,
   InstanceCrashed,
+  pauseOnce,
+  pausePoint,
   pendingCalls,
   planCrash,
   record,
@@ -23,6 +25,7 @@ export {
   waitBeforeRetry,
   beginRun,
   type CrashMode,
+  type Pause,
   type Scheduler,
   type TraceEntry,
 } from "./runtime.ts";

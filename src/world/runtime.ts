@@ -108,6 +108,7 @@ export function beginRun(): Promise<never> {
   epoch++;
   inFlight = 0;
   callsThisRun = 0;
+  pauses = [];
   const livelock = new Promise<never>((_, reject) => (tripwire = reject));
   livelock.catch(() => {});
   return livelock;
@@ -133,6 +134,36 @@ export function record(call: string, result: string, n = 0): void {
   trace?.push({ actor: actors.getStore() ?? "scenario", call, result });
   const invocation = invocations.getStore();
   if (n > 0 && invocation && crashPlan?.at === n && crashPlan.mode === "after") kill(invocation, "after");
+}
+
+// --- Choreography ------------------------------------------------------------------------------
+
+/**
+ * A one-shot pause in a solution's request: when the named request reaches a matching world call
+ * (just before it acts, or just after), the request waits while `run` makes something else happen.
+ * This is how a scenario reproduces an exact race, such as a refund landing mid-request.
+ */
+export interface Pause {
+  actor: string;
+  when: "before" | "after";
+  call: (call: string) => boolean;
+  run: () => Promise<void>;
+}
+
+let pauses: (Pause & { fired: boolean })[] = [];
+
+export function pauseOnce(pause: Pause): void {
+  pauses.push({ ...pause, fired: false });
+}
+
+/** World methods call this at their pause points. Only requests into the solution can be paused. */
+export async function pausePoint(call: string, when: "before" | "after"): Promise<void> {
+  if (!invocations.getStore()) return;
+  const actor = actors.getStore();
+  const pause = pauses.find((p) => !p.fired && p.when === when && p.actor === actor && p.call(call));
+  if (!pause) return;
+  pause.fired = true;
+  await pause.run();
 }
 
 // --- Retry timing ------------------------------------------------------------------------------
