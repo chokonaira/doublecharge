@@ -28,7 +28,7 @@ for (const file of recordFiles(runDir)) {
     records.push(recorded);
     continue;
   }
-  const report = grade(recorded.task, solution);
+  const report = await grade(recorded.task, solution);
   const status = report.error ? "error" : passed(report) ? "pass" : "fail";
   if (status !== recorded.status) {
     mismatches++;

@@ -9,6 +9,7 @@ const task = defineTask<() => void>({
   id: "t",
   title: "T",
   entry: "f",
+  instancePerCall: false,
   prompt: "",
   scenarios: [
     { name: "a", run: async () => ok() },

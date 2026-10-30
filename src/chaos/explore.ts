@@ -1,4 +1,4 @@
-import type { Outcome, Scenario } from "../tasks/types.ts";
+import type { Loader, Outcome, Scenario } from "../tasks/types.ts";
 import { startTrace, stopTrace, useScheduler, type TraceEntry } from "../world/index.ts";
 import { seededRandom } from "./rng.ts";
 import { ControlledScheduler, type Pick } from "./scheduler.ts";
@@ -28,7 +28,7 @@ export interface ChaosResult {
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** Runs one scenario with every world call released in the order `pick` decides. */
-export async function runScheduled(scenario: Scenario, mod: Record<string, unknown>, pick: Pick, timeoutMs: number): Promise<ScheduledRun> {
+export async function runScheduled(scenario: Scenario, load: Loader, pick: Pick, timeoutMs: number): Promise<ScheduledRun> {
   const scheduler = new ControlledScheduler(pick);
   const trace = startTrace();
   useScheduler(scheduler);
@@ -36,7 +36,7 @@ export async function runScheduled(scenario: Scenario, mod: Record<string, unkno
   let timer: NodeJS.Timeout | undefined;
   try {
     const outcome = await Promise.race([
-      scenario.run(mod),
+      scenario.run(load),
       new Promise<Outcome>((resolve) => {
         timer = realTimeout(() => resolve({ pass: false, detail: `timed out after ${timeoutMs}ms` }), timeoutMs);
       }),
@@ -60,13 +60,20 @@ export const replay = (choices: number[]): Pick => (step) => choices[step] ?? 0;
  * Shrinks a failing interleaving towards arrival order: each departure is reverted in turn and
  * kept reverted if the scenario still fails. What remains is a minimal story of the failure.
  */
-export async function shrink(scenario: Scenario, mod: Record<string, unknown>, failing: ScheduledRun, timeoutMs: number): Promise<ScheduledRun> {
+export async function shrink(
+  scenario: Scenario,
+  load: Loader,
+  failing: ScheduledRun,
+  timeoutMs: number,
+  beforeRun: () => Promise<void> | void = () => {},
+): Promise<ScheduledRun> {
   let best = failing;
   for (let i = best.choices.length - 1; i >= 0; i--) {
     if (best.choices[i] === 0) continue;
     const candidate = [...best.choices];
     candidate[i] = 0;
-    const run = await runScheduled(scenario, mod, replay(candidate), timeoutMs);
+    await beforeRun();
+    const run = await runScheduled(scenario, load, replay(candidate), timeoutMs);
     if (!run.outcome.pass) best = run;
   }
   return best;
@@ -75,19 +82,22 @@ export async function shrink(scenario: Scenario, mod: Record<string, unknown>, f
 /** Tries `schedules` seeded interleavings of a scenario; shrinks the first failure it finds. */
 export async function explore(
   scenario: Scenario,
-  mod: Record<string, unknown>,
-  opts: { schedules: number; seed: number; timeoutMs: number },
+  load: Loader,
+  /** beforeRun resets anything a run leaves behind, such as timers and module instances. */
+  opts: { schedules: number; seed: number; timeoutMs: number; beforeRun?: () => Promise<void> | void },
 ): Promise<ChaosResult> {
+  const beforeRun = opts.beforeRun ?? (() => {});
   let failures = 0;
   let finding: ChaosFinding | undefined;
   for (let i = 0; i < opts.schedules; i++) {
     const seed = opts.seed + i;
     const random = seededRandom(seed);
-    const run = await runScheduled(scenario, mod, (_step, waiting) => Math.floor(random() * waiting), opts.timeoutMs);
+    await beforeRun();
+    const run = await runScheduled(scenario, load, (_step, waiting) => Math.floor(random() * waiting), opts.timeoutMs);
     if (run.outcome.pass) continue;
     failures++;
     if (!finding) {
-      const minimal = await shrink(scenario, mod, run, opts.timeoutMs);
+      const minimal = await shrink(scenario, load, run, opts.timeoutMs, beforeRun);
       finding = {
         seed,
         detail: minimal.outcome.detail,

@@ -10,6 +10,7 @@
   ],
   "exclude": [
     "tasks/*/mutants/**",
+    "tasks/*/reference.ts",
     "src/world/types.ts",
     "src/report/records.ts"
   ],
@@ -20,7 +21,7 @@
   ],
   "report-dir": "coverage",
   "check-coverage": true,
-  "lines": 90,
-  "functions": 85,
+  "lines": 95,
+  "functions": 88,
   "branches": 85
 }
