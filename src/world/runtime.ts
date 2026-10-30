@@ -35,6 +35,9 @@ export function asActor<T>(name: string, fn: () => T): T {
   return actors.run(name, fn);
 }
 
+/** The request the current code runs for, as named by asActor. */
+export const currentActor = (): string | undefined => actors.getStore();
+
 // --- Instances and crashes -------------------------------------------------------------------
 
 /** One call into the solution, running on its own instance. */

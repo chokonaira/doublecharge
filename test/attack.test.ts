@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -103,6 +103,14 @@ describe("attack runs", () => {
     assert.equal(searched.attack?.status, "confirmed", JSON.stringify(searched.attack?.detail));
     assert.equal(searched.attack?.how, "in another interleaving");
     assert.ok((searched.attack?.trace ?? []).length > 0);
+  });
+
+  it("does not count a refund booked after the delivery last looked: no handler can prevent it", async () => {
+    // Claude Opus 5.5's attack from the first Part 2 run: hold the delivery just before it ships,
+    // book a full refund meanwhile. The reference read the order as paid, so shipping is not a bug.
+    const attack = readFileSync(join(import.meta.dirname, "fixtures/attacks/webhook-ship-race.json"), "utf8");
+    const report = await grade("webhook-handler", reference("webhook-handler"), { attack, chaos: 20 });
+    assert.equal(report.attack?.status, "not-confirmed", report.attack?.detail);
   });
 
   it("does not run an attack against code that does not load", async () => {

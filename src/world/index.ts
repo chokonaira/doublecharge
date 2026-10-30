@@ -11,6 +11,7 @@ export {
   callsSincePlan,
   clone,
   crashOnce,
+  currentActor,
   enter,
   InstanceCrashed,
   pauseOnce,

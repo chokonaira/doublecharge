@@ -1,0 +1,21 @@
+{
+  "summary": "S decides to ship and pauses before shipping.ship; a full refund is processed and marks the order refunded; S then ships the refunded order.",
+  "steps": [
+    [
+      {
+        "id": "S",
+        "action": "deliver",
+        "event": "charge.succeeded",
+        "pause": {
+          "when": "before",
+          "call": "shipping.ship",
+          "occurrence": 1,
+          "meanwhile": [
+            [{ "id": "X", "action": "refund", "total": 1000 }],
+            [{ "id": "R", "action": "deliver", "event": "charge.refunded", "refundedTotal": 1000 }]
+          ]
+        }
+      }
+    ]
+  ]
+}
