@@ -62,8 +62,67 @@ describe("OpenRouter client", () => {
     assert.equal(requests.length, 1);
   });
 
-  it("treats a 200 without a completion as an error", async () => {
-    script = [{ status: 200, body: { error: { message: "upstream failed", code: 502 } } }];
+  it("retries a 200 without a completion, an upstream hiccup, then reports it", async () => {
+    requests = [];
+    const hiccup = { status: 200, body: { error: { message: "upstream failed", code: 502 } } };
+    script = [hiccup, hiccup, hiccup];
     await assert.rejects(complete(request, { baseUrl, retryDelayMs: 1 }), /upstream failed/);
+    assert.equal(requests.length, 3);
+  });
+});
+
+describe("OpenRouter client, streaming and network failures", () => {
+  let sse: Server;
+  let sseUrl: string;
+  let mode: "stream" | "drop-then-stream" | "stream-error" = "stream";
+  let calls = 0;
+
+  before(async () => {
+    sse = createServer((req, res) => {
+      req.resume();
+      req.on("end", () => {
+        calls++;
+        if (mode === "drop-then-stream" && calls === 1) return req.socket.destroy();
+        res.writeHead(200, { "Content-Type": "text/event-stream" });
+        res.write(": OPENROUTER PROCESSING\n\n");
+        if (mode === "stream-error") {
+          res.end(`data: ${JSON.stringify({ error: { message: "upstream overloaded" } })}\n\n`);
+          return;
+        }
+        const chunk = (body: object) => res.write(`data: ${JSON.stringify(body)}\n\n`);
+        chunk({ model: "lab/streamed", provider: "Lab", choices: [{ delta: { content: "```ts\nexport " } }] });
+        chunk({ choices: [{ delta: { content: "{};\n```" } }] });
+        chunk({ choices: [{ delta: {}, finish_reason: "stop" }], usage: { cost: 0.031 } });
+        res.end("data: [DONE]\n\n");
+      });
+    });
+    await new Promise<void>((resolve) => sse.listen(0, "127.0.0.1", resolve));
+    sseUrl = `http://127.0.0.1:${(sse.address() as AddressInfo).port}`;
+  });
+
+  after(() => sse.close());
+
+  it("assembles a streamed reply, skipping keep-alive comments", async () => {
+    mode = "stream";
+    const reply = await complete(request, { baseUrl: sseUrl, retryDelayMs: 1 });
+    assert.equal(reply.content, "```ts\nexport {};\n```");
+    assert.equal(reply.finishReason, "stop");
+    assert.equal(reply.cost, 0.031);
+    assert.deepEqual(reply.servedBy, { model: "lab/streamed", provider: "Lab" });
+  });
+
+  it("retries a dropped connection", async () => {
+    mode = "drop-then-stream";
+    calls = 0;
+    const reply = await complete(request, { baseUrl: sseUrl, retryDelayMs: 1 });
+    assert.equal(calls, 2);
+    assert.equal(reply.cost, 0.031);
+  });
+
+  it("retries an error sent mid-stream, then gives up", async () => {
+    mode = "stream-error";
+    calls = 0;
+    await assert.rejects(complete(request, { baseUrl: sseUrl, retryDelayMs: 1 }), /upstream overloaded/);
+    assert.equal(calls, 3);
   });
 });
