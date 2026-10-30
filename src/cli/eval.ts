@@ -24,6 +24,7 @@ const { values: args } = parseArgs({
     concurrency: { type: "string", default: "6" },
     budget: { type: "string", default: "10" },
     "max-tokens": { type: "string", default: "16000" },
+    out: { type: "string" },
   },
 });
 
@@ -42,7 +43,7 @@ function findTask(id: string): Task {
   return task;
 }
 
-const runDir = join(ROOT, "runs", new Date().toISOString().replace(/[:.]/g, "-"));
+const runDir = join(args.out ?? join(ROOT, "runs"), new Date().toISOString().replace(/[:.]/g, "-"));
 mkdirSync(join(runDir, "prompts"), { recursive: true });
 for (const task of tasks) writeFileSync(join(runDir, "prompts", `${task.id}.md`), task.prompt);
 writeFileSync(

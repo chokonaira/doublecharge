@@ -1,4 +1,4 @@
-const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
+const DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
 
 export interface CompletionRequest {
   apiKey: string;
@@ -29,10 +29,18 @@ interface ChatResponse {
 
 const RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
 
-export async function complete(req: CompletionRequest): Promise<Completion> {
+export interface CompleteOptions {
+  /** Defaults to OPENROUTER_BASE_URL, then OpenRouter's public API. */
+  baseUrl?: string;
+  retryDelayMs?: number;
+}
+
+export async function complete(req: CompletionRequest, opts: CompleteOptions = {}): Promise<Completion> {
+  const endpoint = `${opts.baseUrl ?? process.env.OPENROUTER_BASE_URL ?? DEFAULT_BASE_URL}/chat/completions`;
+  const retryDelayMs = opts.retryDelayMs ?? 5000;
   for (let attempt = 1; ; attempt++) {
     const started = Date.now();
-    const res = await fetch(ENDPOINT, {
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: { Authorization: `Bearer ${req.apiKey}`, "Content-Type": "application/json", "X-Title": "DoubleCharge" },
       body: JSON.stringify({
@@ -60,6 +68,6 @@ export async function complete(req: CompletionRequest): Promise<Completion> {
     }
     const reason = `${res.status} ${body.error?.message ?? "no completion in response"}`;
     if (attempt >= 3 || !RETRYABLE.has(res.status)) throw new Error(`OpenRouter: ${reason}`);
-    await new Promise((resolve) => setTimeout(resolve, 5000 * attempt));
+    await new Promise((resolve) => setTimeout(resolve, retryDelayMs * attempt));
   }
 }
