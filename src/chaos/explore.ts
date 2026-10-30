@@ -1,5 +1,5 @@
 import type { Loader, Outcome, Scenario } from "../tasks/types.ts";
-import { startTrace, stopTrace, useScheduler, type TraceEntry } from "../world/index.ts";
+import { startTrace, stopTrace, useScheduler, beginRun, type TraceEntry } from "../world/index.ts";
 import { seededRandom } from "./rng.ts";
 import { ControlledScheduler, type Pick } from "./scheduler.ts";
 
@@ -37,6 +37,7 @@ export async function runScheduled(scenario: Scenario, load: Loader, pick: Pick,
   try {
     const outcome = await Promise.race([
       scenario.run(load),
+      beginRun(),
       new Promise<Outcome>((resolve) => {
         timer = realTimeout(() => resolve({ pass: false, detail: `timed out after ${timeoutMs}ms` }), timeoutMs);
       }),

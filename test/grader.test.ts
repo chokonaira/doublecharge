@@ -38,6 +38,14 @@ describe("grader isolation", () => {
     assert.ok(report.results.every((r) => !r.pass && r.detail.includes("timed out")));
   });
 
+  it("fails a polling loop fast as a livelock instead of waiting for the timeout", async () => {
+    const code = "export async function checkout(orderId: string, ctx: any) { while ((await ctx.db.get(`order:${orderId}`)).status !== 'paid') {} return 'paid'; }";
+    const started = Date.now();
+    const report = await grade("checkout", solution("poll", code));
+    assert.ok(report.results.every((r) => !r.pass && r.detail.includes("livelock")), JSON.stringify(report.results[0]));
+    assert.ok(Date.now() - started < 15_000);
+  });
+
   it("judges a solution that blocks the event loop as hung, not as an infrastructure error", async () => {
     const report = await grade("currency-split", join(REVIEW, "split_starve.ts"), { timeoutMs: 8000 });
     assert.equal(report.error, undefined);
