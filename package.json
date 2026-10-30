@@ -17,7 +17,8 @@
     "chaos": "node --no-warnings src/cli/chaos.ts",
     "eval": "node --no-warnings src/cli/eval.ts",
     "regrade": "node --no-warnings src/cli/regrade.ts",
-    "check": "npm run typecheck && npm test && npm run audit"
+    "check": "npm run typecheck && npm test && npm run audit",
+    "review": "node --no-warnings src/cli/review.ts"
   },
   "devDependencies": {
     "@types/node": "^25.9.9",
