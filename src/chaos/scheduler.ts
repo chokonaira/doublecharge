@@ -14,8 +14,11 @@ export class ControlledScheduler implements Scheduler {
   readonly choices: number[] = [];
   private readonly waiting: (() => void)[] = [];
   private running = true;
+  private readonly pick: Pick;
 
-  constructor(private readonly pick: Pick) {}
+  constructor(pick: Pick) {
+    this.pick = pick;
+  }
 
   yield(): Promise<void> {
     return new Promise((resolve) => this.waiting.push(resolve));

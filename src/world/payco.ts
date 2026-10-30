@@ -22,11 +22,10 @@ export class PayCo implements PayCoApi {
   private readonly allPayouts: Payout[] = [];
   private readonly keys = new Map<string, StoredResult>();
   private seq = 100;
+  private readonly faults: PayCoFaults;
 
-  constructor(
-    private readonly faults: PayCoFaults = {},
-    seed: Charge[] = [],
-  ) {
+  constructor(faults: PayCoFaults = {}, seed: Charge[] = []) {
+    this.faults = faults;
     this.allCharges.push(...seed.map(clone));
   }
 

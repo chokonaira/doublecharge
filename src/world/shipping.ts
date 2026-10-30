@@ -5,8 +5,11 @@ import type { Fault, ShippingApi } from "./types.ts";
 export class Shipping implements ShippingApi {
   private readonly shipments: string[] = [];
   private readonly keys = new Set<string>();
+  private readonly faults: Fault[];
 
-  constructor(private readonly faults: Fault[] = []) {}
+  constructor(faults: Fault[] = []) {
+    this.faults = faults;
+  }
 
   async ship(orderId: string, opts: { idempotencyKey?: string } = {}): Promise<void> {
     await tick();
