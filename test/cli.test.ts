@@ -76,7 +76,7 @@ describe("eval, regrade and chaos commands", () => {
   it("regrade reproduces every saved verdict without a key", async () => {
     const run = await cli("regrade.ts", [runDir]);
     assert.equal(run.status, 0, run.stdout + run.stderr);
-    assert.match(run.stdout, /all verdicts reproduced, scenario by scenario/);
+    assert.match(run.stdout, /every recorded verdict reproduced, scenario by scenario/);
   });
 
   it("regrade flags a verdict that no longer reproduces", async () => {
@@ -97,6 +97,22 @@ describe("eval, regrade and chaos commands", () => {
     const run = await cli("regrade.ts", [tampered]);
     assert.equal(run.status, 1);
     assert.match(run.stdout, /crash-safe \(recorded false, now true\)/);
+  });
+
+  it("regrade reports scenarios added and prompts changed since the run apart from mismatches, and saves its records", async () => {
+    const later = join(out, "later");
+    cpSync(runDir, later, { recursive: true });
+    const recordPath = join(later, "fake__model", "checkout", "t1", "record.json");
+    const record = JSON.parse(readFileSync(recordPath, "utf8")) as { scenarios: { scenario: string }[] };
+    const dropped = record.scenarios.shift()!.scenario;
+    writeFileSync(recordPath, JSON.stringify(record));
+    writeFileSync(join(later, "prompts", "checkout.md"), "an older prompt");
+    const run = await cli("regrade.ts", [later]);
+    assert.equal(run.status, 0, run.stdout + run.stderr);
+    assert.match(run.stdout, new RegExp(`Scenarios added since the run[^]*checkout: ${dropped}`));
+    assert.match(run.stdout, /Prompts changed since the run: checkout/);
+    const saved = JSON.parse(readFileSync(join(later, "records.regraded.json"), "utf8")) as { scenarios: unknown[] }[];
+    assert.ok(saved.length > 0 && saved.every((r) => Array.isArray(r.scenarios)));
   });
 
   it("chaos re-tests saved solutions under many interleavings", async () => {

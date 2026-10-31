@@ -25,4 +25,6 @@ export interface ReviewRecord {
   cost: number;
   ms: number;
   note?: string;
+  /** Set by rejudge: the reviewer saw a different prompt than today's, so today's rules may be news to it. */
+  stalePrompt?: boolean;
 }
