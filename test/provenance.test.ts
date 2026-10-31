@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -39,6 +39,21 @@ describe("provenance", () => {
     const fresh = repo();
     writeFileSync(join(fresh, "src/new.ts"), "export {};\n");
     assert.equal(provenance(fresh).dirty, true);
+  });
+
+  it("outside a git checkout, as in an unpacked submission zip, hashes the same files the same way", () => {
+    const root = repo();
+    mkdirSync(join(root, "tasks/t"), { recursive: true });
+    writeFileSync(join(root, "tasks/t/prompt.md"), "spec\n");
+    writeFileSync(join(root, "package.json"), "{}\n");
+    execFileSync("git", ["add", "."], { cwd: root });
+    execFileSync("git", ["commit", "-qm", "more"], { cwd: root });
+    const inRepo = provenance(root);
+    const unpacked = mkdtempSync(join(tmpdir(), "doublecharge-zip-"));
+    cpSync(root, unpacked, { recursive: true });
+    rmSync(join(unpacked, ".git"), { recursive: true });
+    const fromZip = provenance(unpacked);
+    assert.deepEqual(fromZip, { commit: "none", dirty: false, graderHash: inRepo.graderHash });
   });
 
   it("ignores changes outside the grading inputs", () => {

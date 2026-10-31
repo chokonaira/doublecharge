@@ -1,11 +1,23 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
 import { describe, it } from "node:test";
 
 const ROOT = join(import.meta.dirname, "..");
-const tracked = execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean);
+/** The files that ship: those git tracks, or in an unpacked submission zip (no .git), every file there. */
+function shipped(): string[] {
+  try {
+    return execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).split("\n").filter(Boolean);
+  } catch {
+    const walk = (dir: string): string[] =>
+      readdirSync(dir)
+        .filter((name) => name !== "node_modules" && name !== ".git")
+        .flatMap((name) => (statSync(join(dir, name)).isDirectory() ? walk(join(dir, name)) : [relative(ROOT, join(dir, name))]));
+    return walk(ROOT);
+  }
+}
+const tracked = shipped();
 
 describe("repository hygiene", () => {
   it("contains no machine-specific absolute paths", () => {
