@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { asInvocation, callsSincePlan, errorCode, InstanceCrashed, MemoryDb, PayCo, planCrash, Shipping } from "../src/world/index.ts";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { asActor, asInstanceLoad, asInvocation, beginRun, callMatcher, callsSincePlan, crashOnce, errorCode, InstanceCrashed, MemoryDb, pauseOnce, PayCo, planCrash, Shipping } from "../src/world/index.ts";
 
 const charge = { amount: 500, currency: "EUR", customerId: "cus_1" };
 
@@ -206,5 +207,48 @@ describe("instance crashes", () => {
     assert.equal(b.status, "fulfilled");
     assert.equal(db.peek("b"), 1);
     assert.equal(callsSincePlan(), 0);
+  });
+
+  it("a decline is reported when it happens, even if the instance dies before seeing it; a replay is not", async () => {
+    const payco = new PayCo({ createCharge: ["decline"] });
+    let declines = 0;
+    payco.onDecline(() => declines++);
+    planCrash({ at: 1, mode: "after" });
+    await assert.rejects(asInvocation(() => payco.createCharge({ ...charge, idempotencyKey: "k" })), InstanceCrashed);
+    planCrash(undefined);
+    assert.equal(declines, 1);
+    await assert.rejects(payco.createCharge({ ...charge, idempotencyKey: "k" }), (e) => errorCode(e) === "card_declined");
+    assert.equal(declines, 1);
+  });
+
+  it("a pause claimed by its caller can no longer fire", async () => {
+    beginRun();
+    const db = new MemoryDb();
+    let ran = 0;
+    const claim = pauseOnce({ actor: "A", when: "before", call: callMatcher("db.get"), run: async () => void ran++ });
+    assert.equal(claim(), true);
+    await asActor("A", () => asInvocation(() => db.get("x")));
+    assert.equal(ran, 0);
+    assert.equal(claim(), false, "a pause is claimed once");
+    beginRun();
+  });
+
+  it("anything an instance's top-level code starts for later belongs to a dead instance", async () => {
+    const db = new MemoryDb();
+    // What the virtual clock does with a timer: run it in the context it was set in.
+    const later = await asInstanceLoad(async () => AsyncLocalStorage.snapshot());
+    await assert.rejects(later(() => db.set("swept", true)), InstanceCrashed);
+    assert.equal(db.peek("swept"), undefined);
+  });
+
+  it("counts a targeted call once, at both of its points, even when an earlier one failed before its after point", async () => {
+    beginRun();
+    const shipping = new Shipping(["timeout_before"]);
+    crashOnce({ actor: "S", when: "after", call: callMatcher("shipping.ship", 2) });
+    const send = () => asActor("S", () => asInvocation(() => shipping.ship("o1")));
+    await assert.rejects(send(), (e) => errorCode(e) === "timeout");
+    await assert.rejects(send(), InstanceCrashed);
+    assert.equal(shipping.count("o1"), 1, "the second call ships, then its instance dies");
+    beginRun();
   });
 });

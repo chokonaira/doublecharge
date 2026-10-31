@@ -1,9 +1,10 @@
 export { MemoryDb } from "./db.ts";
 export { ApiError, errorCode } from "./errors.ts";
-export { PayCo, type PayCoFaults } from "./payco.ts";
+export { PayCo, type ChargeOutcome, type PayCoFaults } from "./payco.ts";
 export { facade } from "./facade.ts";
 export {
   asActor,
+  asInstanceLoad,
   asInvocation,
   CALL_LIMIT,
   busy,
@@ -25,6 +26,7 @@ export {
   startTrace,
   stopTrace,
   tick,
+  timeMoved,
   useScheduler,
   waitBeforeRetry,
   beginRun,
