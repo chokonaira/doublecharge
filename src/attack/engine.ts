@@ -13,20 +13,27 @@ async function runAttack(attack: Attack, world: AttackWorld): Promise<Outcome> {
     }
     if (request.crash) crashOnce({ actor: request.id, when: request.crash.when, call: callMatcher(request.crash.call, request.crash.occurrence) });
     const pause = request.pause;
-    if (pause) pauseOnce({ actor: request.id, when: pause.when, call: callMatcher(pause.call, pause.occurrence), run: () => runSteps(pause.meanwhile) });
+    const claim = pause ? pauseOnce({ actor: request.id, when: pause.when, call: callMatcher(pause.call, pause.occurrence), run: () => runSteps(pause.meanwhile) }) : () => false;
+    if (!(await answers(request))) unanswered.push(request);
+    // A pause whose call never came still runs its meanwhile steps, once, when the request is over.
+    if (pause && claim()) await runSteps(pause.meanwhile);
+  }
+
+  /** Sends a request, retrying as the caller would; whether it answered. */
+  async function answers(request: AttackRequest): Promise<boolean> {
     for (let attempt = 0; attempt <= request.retries; attempt++) {
       if (attempt > 0) await waitBeforeRetry();
       const label = attempt === 0 ? request.id : `${request.id} retry ${attempt}`;
       try {
         const value = await asActor(label, () => world.perform(request));
         world.answered(request, value, label);
-        return;
+        return true;
       } catch (e) {
         if (e instanceof AttackInvalid) throw e;
         // no answer: the caller tries again if it has retries left
       }
     }
-    unanswered.push(request);
+    return false;
   }
 
   async function runSteps(steps: AttackRequest[][]): Promise<void> {
