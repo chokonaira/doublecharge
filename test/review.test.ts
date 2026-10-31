@@ -73,6 +73,15 @@ describe("review summary", () => {
     assert.match(out, /New bugs proven in code the grader passed\n- m on/);
     assert.match(out, /1 replies had no verdict line/);
     assert.doesNotMatch(out, /Across/);
+    assert.doesNotMatch(out, /failed at the API/);
+  });
+
+  it("leaves calls that failed at the API out of every table, apart from replies with no verdict", () => {
+    const failed = { ...record("lab/m", true, "none"), error: "OpenRouter: 429 Rate limit exceeded" };
+    const out = renderReviewSummary([record("lab/m", true, "UNSAFE", "confirmed"), failed, { ...failed, sample: "x", trial: 2 }], ["lab/m"]);
+    assert.match(out, /\| m \| 1\/1 \(100%\) \| 1\/1 \(100%\)/);
+    assert.match(out, /2 calls failed at the API or the grader and are left out/);
+    assert.doesNotMatch(out, /no verdict line/);
   });
 
   it("with several trials, counts code a model judged the same way every time", () => {

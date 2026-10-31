@@ -25,6 +25,8 @@ export interface ReviewRecord {
   cost: number;
   ms: number;
   note?: string;
+  /** Set when the API call or the grader failed (credits, rate limits, the network): not the reviewer's doing, so left out of every table. */
+  error?: string;
   /** Set by rejudge: the reviewer saw a different prompt than today's, so today's rules may be news to it. */
   stalePrompt?: boolean;
 }
