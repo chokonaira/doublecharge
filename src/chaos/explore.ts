@@ -42,14 +42,19 @@ export async function runScheduled(scenario: Scenario, load: Loader, pick: Pick,
       livelock,
       new Promise<Outcome>((resolve) => {
         timer = realTimeout(
-          () => resolve({ pass: false, detail: `timed out after ${timeoutMs}ms${pausesInProgress() > 0 ? " while a pause was active" : ""}` }),
+          () => {
+            const staged = pausesInProgress() > 0;
+            resolve({ pass: false, detail: `timed out after ${timeoutMs}ms${staged ? " while a pause was active" : ""}`, staged });
+          },
           timeoutMs,
         );
       }),
     ]);
     return { outcome, choices: [...scheduler.choices], trace: [...trace] };
   } catch (e) {
-    return { outcome: { pass: false, detail: `error: ${message(e)}` }, choices: [...scheduler.choices], trace: [...trace] };
+    // A hang the grader's tripwire caught while a pause held a request carries that as a flag.
+    const staged = (e as { staged?: unknown } | null)?.staged === true;
+    return { outcome: { pass: false, detail: `error: ${message(e)}`, ...(staged ? { staged } : {}) }, choices: [...scheduler.choices], trace: [...trace] };
   } finally {
     clearTimeout(timer);
     scheduler.stop();

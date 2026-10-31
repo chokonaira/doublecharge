@@ -3,6 +3,8 @@ import { asInvocation, busy } from "../world/index.ts";
 export interface Outcome {
   pass: boolean;
   detail: string;
+  /** Set by the grader, never by the code under test: the run hung while a pause was holding a request. */
+  staged?: boolean;
 }
 
 /** Signature-erased function type for a task's entry point. */
