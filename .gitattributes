@@ -1,0 +1,3 @@
+# Generated files are compared byte for byte by the tests: keep them LF everywhere.
+docs/*.svg text eol=lf
+results/** -text
