@@ -1,0 +1,3 @@
+{ "summary": "B never runs: A's pause targets a call A never makes",
+  "faults": { "createCharge": ["decline"] },
+  "steps": [[ { "id": "A", "action": "pay", "pause": { "when": "before", "call": "shipping.ship", "occurrence": 1, "meanwhile": [[ { "id": "B", "action": "pay", "crash": { "when": "after", "call": "payco.createCharge", "occurrence": 1 } } ]] } } ]] }

@@ -1,0 +1,2 @@
+{ "summary": "A double click: A's charge is declined, B's (same key) times out four times; B then reads A's recorded decline", "faults": { "createCharge": ["decline", "timeout_before", "timeout_before", "timeout_before", "timeout_before"] },
+  "steps": [[{ "id": "A", "action": "pay" }, { "id": "B", "action": "pay" }]] }

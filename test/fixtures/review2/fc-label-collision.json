@@ -1,0 +1,12 @@
+{
+  "summary": "Request ids that collide with retry labels share knowledge: A's retry reads 'paid', and request 'A retry 1' is judged by that read.",
+  "faults": { "createCharge": ["decline"] },
+  "steps": [[
+    { "id": "A retry 1", "action": "pay",
+      "pause": { "when": "after", "call": "db.update", "occurrence": 1,
+        "meanwhile": [
+          [ { "id": "C", "action": "pay" } ],
+          [ { "id": "A", "action": "pay", "retries": 1, "crash": { "when": "before", "call": "db.get", "occurrence": 1 } } ]
+        ] } }
+  ]]
+}

@@ -1,0 +1,8 @@
+{
+  "summary": "A dies holding the lease; seven presses poll until it expires.",
+  "steps": [[
+    { "id": "A", "action": "pay", "crash": { "when": "after", "call": "db.update", "occurrence": 1 } },
+    { "id": "B", "action": "pay" }, { "id": "C", "action": "pay" }, { "id": "D", "action": "pay" },
+    { "id": "E", "action": "pay" }, { "id": "F", "action": "pay" }, { "id": "G", "action": "pay" }, { "id": "H", "action": "pay" }
+  ]]
+}

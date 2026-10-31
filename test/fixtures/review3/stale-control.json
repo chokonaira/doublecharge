@@ -1,0 +1,2 @@
+{ "summary": "B is told about A's decline; C, pressed right after, gets the stale decline", "faults": { "createCharge": ["decline"] },
+  "steps": [[{ "id": "A", "action": "pay" }], [{ "id": "C", "action": "pay" }]] }

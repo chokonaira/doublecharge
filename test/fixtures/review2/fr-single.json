@@ -1,0 +1,1 @@
+{"summary":"The charge goes through but the response is lost; A tells the customer the card was declined.","faults":{"createCharge":["timeout_after"]},"steps":[[{"id":"A","action":"pay"}]]}

@@ -1,0 +1,2 @@
+{ "summary": "A is declined and dies before recording it; B is told; C, pressed after B answered, gets the stale decline", "faults": { "createCharge": ["decline"] },
+  "steps": [[{ "id": "A", "action": "pay", "crash": { "when": "after", "call": "payco.createCharge" } }], [{ "id": "B", "action": "pay" }], [{ "id": "C", "action": "pay" }]] }

@@ -1,0 +1,1 @@
+{"summary":"two presses","faults":{"createCharge":["timeout_after","timeout_before"]},"steps":[[{"id":"A","action":"pay"}],[{"id":"B","action":"pay"}]]}

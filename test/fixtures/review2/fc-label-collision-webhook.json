@@ -1,0 +1,11 @@
+{
+  "summary": "Delivery 'S retry 1' is judged by what S's retry knew: S's retry starts after the full refund, so the held delivery's shipment counts as a bug.",
+  "steps": [[
+    { "id": "S retry 1", "action": "deliver", "event": "charge.succeeded",
+      "pause": { "when": "before", "call": "shipping.ship", "occurrence": 1,
+        "meanwhile": [
+          [ { "id": "X", "action": "refund", "total": 1000 } ],
+          [ { "id": "S", "action": "deliver", "event": "charge.succeeded", "retries": 1, "crash": { "when": "before", "call": "any", "occurrence": 1 } } ]
+        ] } }
+  ]]
+}
