@@ -62,7 +62,10 @@ for (const file of recordFiles(runDir)) {
   records.push({ ...recorded, status, scenarios: report.results, ...(safe === undefined ? {} : { crashSafe: safe }) });
 }
 
-const models = [...new Set(records.map((r) => r.model))];
+// Columns in the run's own model order; records can be out of order once skipped trials are filled in.
+const manifestFile = join(runDir, "manifest.json");
+const ran = existsSync(manifestFile) ? ((JSON.parse(readFileSync(manifestFile, "utf8")) as { models?: string[] }).models ?? []) : [];
+const models = [...new Set([...ran, ...records.map((r) => r.model)])].filter((m) => records.some((r) => r.model === m));
 const tasks = TASKS.filter((t) => records.some((r) => r.task === t.id));
 const summary = renderSummary(records, models, tasks);
 writeFileSync(join(runDir, "records.regraded.json"), JSON.stringify(records, null, 2));
