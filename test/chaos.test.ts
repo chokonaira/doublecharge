@@ -7,7 +7,8 @@ import { explore, replay, runScheduled } from "../src/chaos/explore.ts";
 import { seededRandom } from "../src/chaos/rng.ts";
 import { compileSolution } from "../src/grader/compile.ts";
 import { grade, passed } from "../src/grader/grade.ts";
-import type { Loader } from "../src/tasks/types.ts";
+import type { Loader, Outcome, Scenario } from "../src/tasks/types.ts";
+import { MemoryDb } from "../src/world/index.ts";
 
 const walletTask = TASKS.find((t) => t.id === "wallet-withdraw")!;
 const sameRequestTwice = walletTask.scenarios.find((s) => s.name === "same request sent twice at once")!;
@@ -62,6 +63,27 @@ describe("chaos exploration", () => {
     const report = await grade("wallet-withdraw", join(import.meta.dirname, "../tasks/wallet-withdraw/mutants/naive.ts"), { chaos: 30 });
     const found = report.chaos?.find((c) => c.scenario === "same request sent twice at once");
     assert.ok(found && found.failures > 0, JSON.stringify(report.chaos));
+  });
+
+  it("skips failures that do not count, and shrinks only towards ones that do", async () => {
+    // Arrival order fails in a way that does not count; the other order fails genuinely.
+    const race: Scenario = {
+      name: "race",
+      crash: false,
+      run: async () => {
+        const db = new MemoryDb();
+        const first: string[] = [];
+        await Promise.all(["a", "b"].map((key) => db.set(key, 1).then(() => first.push(key))));
+        return { pass: false, detail: first[0] === "a" ? "timed out while a pause was active" : "genuine" };
+      },
+    };
+    const load: Loader = async () => ({});
+    const genuine = (outcome: Outcome) => outcome.detail === "genuine";
+    const result = await explore(race, load, { schedules: 20, seed: 1, timeoutMs: 5000, counts: genuine });
+    assert.equal(result.finding?.detail, "genuine");
+    assert.ok(result.failures > 0 && result.failures < 20, `${result.failures} of 20 counted`);
+    const unfiltered = await explore(race, load, { schedules: 20, seed: 1, timeoutMs: 5000 });
+    assert.equal(unfiltered.failures, 20);
   });
 });
 

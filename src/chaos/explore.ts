@@ -62,9 +62,15 @@ export async function runScheduled(scenario: Scenario, load: Loader, pick: Pick,
 /** Replays a recorded interleaving; past its end, calls resume in arrival order. */
 export const replay = (choices: number[]): Pick => (step) => choices[step] ?? 0;
 
+/** Which failed outcomes count as findings. By default, every one. */
+export type Counts = (outcome: Outcome) => boolean;
+const everyFailure: Counts = () => true;
+const isFinding = (outcome: Outcome, counts: Counts) => !outcome.pass && counts(outcome);
+
 /**
  * Shrinks a failing interleaving towards arrival order: each departure is reverted in turn and
- * kept reverted if the scenario still fails. What remains is a minimal story of the failure.
+ * kept reverted if the scenario still fails in a way that counts. What remains is a minimal story
+ * of the failure.
  */
 export async function shrink(
   scenario: Scenario,
@@ -72,6 +78,7 @@ export async function shrink(
   failing: ScheduledRun,
   timeoutMs: number,
   beforeRun: () => Promise<void> | void = () => {},
+  counts: Counts = everyFailure,
 ): Promise<ScheduledRun> {
   let best = failing;
   for (let i = best.choices.length - 1; i >= 0; i--) {
@@ -80,19 +87,23 @@ export async function shrink(
     candidate[i] = 0;
     await beforeRun();
     const run = await runScheduled(scenario, load, replay(candidate), timeoutMs);
-    if (!run.outcome.pass) best = run;
+    if (isFinding(run.outcome, counts)) best = run;
   }
   return best;
 }
 
-/** Tries `schedules` seeded interleavings of a scenario; shrinks the first failure it finds. */
+/**
+ * Tries `schedules` seeded interleavings of a scenario; shrinks the first failure it finds. Only
+ * failures that `counts` accepts are counted, shrunk or reported; the search goes on past the rest.
+ */
 export async function explore(
   scenario: Scenario,
   load: Loader,
   /** beforeRun resets anything a run leaves behind, such as timers and module instances. */
-  opts: { schedules: number; seed: number; timeoutMs: number; beforeRun?: () => Promise<void> | void },
+  opts: { schedules: number; seed: number; timeoutMs: number; beforeRun?: () => Promise<void> | void; counts?: Counts },
 ): Promise<ChaosResult> {
   const beforeRun = opts.beforeRun ?? (() => {});
+  const counts = opts.counts ?? everyFailure;
   let failures = 0;
   let finding: ChaosFinding | undefined;
   for (let i = 0; i < opts.schedules; i++) {
@@ -100,10 +111,10 @@ export async function explore(
     const random = seededRandom(seed);
     await beforeRun();
     const run = await runScheduled(scenario, load, (_step, waiting) => Math.floor(random() * waiting), opts.timeoutMs);
-    if (run.outcome.pass) continue;
+    if (!isFinding(run.outcome, counts)) continue;
     failures++;
     if (!finding) {
-      const minimal = await shrink(scenario, load, run, opts.timeoutMs, beforeRun);
+      const minimal = await shrink(scenario, load, run, opts.timeoutMs, beforeRun, counts);
       finding = {
         seed,
         detail: minimal.outcome.detail,

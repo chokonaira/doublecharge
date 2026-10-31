@@ -2,8 +2,9 @@
 // jumps to the next timer only when no world call is in flight, so a solution's own deadline can
 // never race the simulated network. Covers globalThis timers, node:timers, node:timers/promises
 // (including scheduler.wait) and Date.
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createRequire, syncBuiltinESMExports } from "node:module";
-import { pendingCalls } from "../world/index.ts";
+import { pendingCalls, timeMoved } from "../world/index.ts";
 
 /** Fixed start of virtual time, so runs are reproducible. */
 export const EPOCH = Date.UTC(2026, 10, 1);
@@ -15,6 +16,8 @@ interface Timer {
   fn: (...args: unknown[]) => void;
   args: unknown[];
   interval?: number;
+  /** The async context the timer was set in: the request (and instance) that owns the callback. */
+  context: <R>(fn: () => R) => R;
 }
 
 export interface VirtualClock {
@@ -42,7 +45,7 @@ export function installVirtualClock(onTimerError: (error: unknown) => void): Vir
 
   function schedule([fn, ms, ...args]: TimerArgs, repeat: boolean) {
     const delay = Math.max(repeat ? 1 : 0, Number(ms) || 0);
-    const timer: Timer = { id: nextId++, due: now + delay, seq: seq++, fn, args, interval: repeat ? delay : undefined };
+    const timer: Timer = { id: nextId++, due: now + delay, seq: seq++, fn, args, interval: repeat ? delay : undefined, context: AsyncLocalStorage.snapshot() };
     timers.set(timer.id, timer);
     const handle = {
       id: timer.id,
@@ -112,6 +115,7 @@ export function installVirtualClock(onTimerError: (error: unknown) => void): Vir
       if (!running || pendingCalls() > 0) continue;
       const timer = nextDue();
       if (!timer) continue;
+      if (timer.due > now) timeMoved(timer.due - now);
       now = Math.max(now, timer.due);
       if (timer.interval !== undefined) {
         timer.due = now + timer.interval;
@@ -120,7 +124,9 @@ export function installVirtualClock(onTimerError: (error: unknown) => void): Vir
         timers.delete(timer.id);
       }
       try {
-        timer.fn(...timer.args);
+        // Run the callback as part of the request that set it: its world calls count as that request's
+        // calls, can be paused or crashed, and are refused once its instance has been killed.
+        timer.context(() => timer.fn(...timer.args));
       } catch (error) {
         onTimerError(error);
       }
