@@ -22,3 +22,5 @@ jobs:
       - run: npm test
       - run: npm run coverage
       - run: npm run audit
+      # Every published verdict and every number in the README, re-derived from the raw outputs.
+      - run: npm run reproduce
