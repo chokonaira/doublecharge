@@ -48,9 +48,12 @@ describe("README stays true", () => {
     assert.ok(readme.includes(`Node ${engines.replace(">=", "")}`), `README should say Node ${engines.replace(">=", "")}`);
   });
 
-  it("links only to files that exist", () => {
+  it("links only to files that exist, images included", () => {
     for (const [, target] of readme.matchAll(/\]\((?!https?:)([^)#]+)\)/g)) {
       assert.doesNotThrow(() => readFileSync(join(ROOT, target!)), `README links to missing ${target}`);
+    }
+    for (const [, target] of readme.matchAll(/(?:src|srcset)="(?!https?:)([^"]+)"/g)) {
+      assert.doesNotThrow(() => readFileSync(join(ROOT, target!)), `README shows missing image ${target}`);
     }
   });
 
