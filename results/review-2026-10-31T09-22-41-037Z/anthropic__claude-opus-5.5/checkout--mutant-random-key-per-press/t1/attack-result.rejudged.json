@@ -10,7 +10,7 @@
     },
     {
       "actor": "A",
-      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\"} key=9b1d5bb3-9fb6-430e-ba14-3084333cc85f",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\"} key=38963ffb-3a07-4466-9d10-d6e1a6e02a29",
       "result": "processed"
     },
     {
@@ -25,7 +25,7 @@
     },
     {
       "actor": "A retry 1",
-      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\"} key=bc830f3b-2295-4154-a701-0445bd04bc17",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\"} key=6eb34763-26d7-453f-8b37-62e87761bc42",
       "result": "processed"
     },
     {

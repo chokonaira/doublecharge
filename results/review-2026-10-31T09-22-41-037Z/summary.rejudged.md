@@ -22,4 +22,4 @@
 ### New bugs proven in code the grader passed
 - none
 
-1 replies had no verdict line and are left out. 2 calls failed at the API or the grader and are left out. Total cost: $6.64
+1 replies had no verdict line and are left out of the review table (the cross-trial table counts them). 2 calls failed at the API or the grader and are left out. Total cost: $6.64
