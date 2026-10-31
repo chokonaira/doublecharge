@@ -20,7 +20,8 @@
     "check": "npm run typecheck && npm test && npm run audit",
     "review": "node --no-warnings src/cli/review.ts",
     "rejudge": "node --no-warnings src/cli/rejudge.ts",
-    "atlas": "node --no-warnings src/cli/atlas.ts"
+    "atlas": "node --no-warnings src/cli/atlas.ts",
+    "fill": "node --no-warnings src/cli/fill.ts"
   },
   "devDependencies": {
     "@types/node": "^25.9.9",
