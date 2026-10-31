@@ -175,7 +175,9 @@ export function beginRun(): Promise<never> {
 export function enter(): number {
   const invocation = invocations.getStore();
   if (!invocation) return 0;
-  if (invocation.dead) throw new InstanceCrashed("instance is dead");
+  // A request left over from an earlier run (one that outlived a timeout, say) is as good as dead: its
+  // calls must not count towards, or use up, this run's crash point.
+  if (invocation.dead || invocation.epoch !== epoch) throw new InstanceCrashed("instance is dead");
   if (++callsThisRun === CALL_LIMIT) {
     const during = pausesActive > 0 ? " while a pause was active" : "";
     tripwire?.(new Error(`livelock: more than ${CALL_LIMIT} world calls without time moving on${during}`));

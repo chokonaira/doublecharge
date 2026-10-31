@@ -127,6 +127,11 @@ describe("grader trust (adversarial review regressions)", () => {
     const late = await grade("webhook-handler", join(FINAL, "webhook-ships-late.ts"), { crash: true });
     const partial = late.crash?.find((c) => c.scenario === "two partial refunds");
     assert.match(partial?.finding?.detail ?? "", /shipped from a delivery that started after the charge was fully refunded/);
+
+    // The right number of shipments does not excuse one from a delivery that knew the charge was refunded.
+    const redelivery = await grade("webhook-handler", join(FINAL, "webhook-ships-on-redelivery.ts"));
+    const refunded = redelivery.results.find((r) => r.scenario === "success event redelivered after a full refund");
+    assert.match(refunded?.detail ?? "", /shipped from a delivery that started after the charge was fully refunded/);
   });
 
   it("in-process locks do not count, because the service runs as several instances", async () => {
