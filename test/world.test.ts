@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { holdAfterCall, killAfterCall } from "../src/tasks/helpers.ts";
 import {
   asActor,
   asInstanceLoad,
@@ -9,7 +10,9 @@ import {
   callMatcher,
   callsSincePlan,
   crashOnce,
+  currentActor,
   errorCode,
+  freshAttempt,
   InstanceCrashed,
   MemoryDb,
   pauseOnce,
@@ -270,6 +273,81 @@ describe("instance crashes", () => {
     await assert.rejects(send(), InstanceCrashed);
     assert.equal(shipping.count("o1"), 1, "the second call ships, then its instance dies");
     beginRun();
+  });
+});
+
+describe("probe choreography", () => {
+  it("a hold set after a call that throws before its after point holds at the next call instead", async () => {
+    beginRun();
+    const db = new MemoryDb({ seen: true });
+    const order: string[] = [];
+    const held = holdAfterCall("P", 1, async () => void order.push("meanwhile"));
+    await asActor("P", () =>
+      asInvocation(async () => {
+        await db.update("seen", () => {
+          throw new Error("already seen");
+        }).catch(() => order.push("update aborted"));
+        await db.get("x");
+        order.push("get done");
+      }),
+    );
+    assert.equal(held(), true);
+    assert.deepEqual(order, ["update aborted", "meanwhile", "get done"]);
+    beginRun();
+  });
+
+  it("a hold past the request's last call never happens", async () => {
+    beginRun();
+    const db = new MemoryDb();
+    const held = holdAfterCall("P", 2, async () => {});
+    await asActor("P", () => asInvocation(() => db.get("x")));
+    assert.equal(held(), false);
+    beginRun();
+  });
+
+  it("a kill set after a call that throws before its after point kills before the next call", async () => {
+    beginRun();
+    const db = new MemoryDb({ seen: true });
+    killAfterCall("K", 1);
+    const run = asActor("K", () =>
+      asInvocation(async () => {
+        await db.update("seen", () => {
+          throw new Error("already seen");
+        }).catch(() => {});
+        await db.set("written", true);
+      }),
+    );
+    await assert.rejects(run, InstanceCrashed);
+    assert.equal(db.peek("written"), undefined);
+    beginRun();
+  });
+
+  it("a fresh attempt drops what the last one left armed and starts the trace again", async () => {
+    beginRun();
+    const trace = startTrace();
+    try {
+      const db = new MemoryDb();
+      let ran = 0;
+      pauseOnce({ actor: "A", when: "before", call: callMatcher("db.get"), run: async () => void ran++ });
+      await asActor("A", () => asInvocation(() => db.set("x", 1)));
+      assert.ok(trace.length > 0);
+      freshAttempt();
+      assert.equal(trace.length, 0);
+      await asActor("A", () => asInvocation(() => db.get("x")));
+      assert.equal(ran, 0, "the pause armed before the fresh attempt is gone");
+    } finally {
+      stopTrace();
+      beginRun();
+    }
+  });
+
+  it("PayCo reports every charge a request reads, in the request's context", async () => {
+    const payco = new PayCo({}, [{ id: "ch_1", ...charge, metadata: {}, status: "succeeded", amountRefunded: 500, created: 1 }]);
+    const seen: string[] = [];
+    payco.onChargeRead((c) => seen.push(`${currentActor()} ${c.id} ${c.amountRefunded}`));
+    await asActor("R", () => payco.getCharge("ch_1"));
+    await asActor("L", () => payco.listCharges());
+    assert.deepEqual(seen, ["R ch_1 500", "L ch_1 500"]);
   });
 });
 

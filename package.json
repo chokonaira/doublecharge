@@ -17,6 +17,7 @@
     "chaos": "node --no-warnings src/cli/chaos.ts",
     "eval": "node --no-warnings src/cli/eval.ts",
     "regrade": "node --no-warnings src/cli/regrade.ts",
+    "probe": "node --no-warnings src/cli/probe.ts",
     "check": "npm run typecheck && npm test && npm run audit",
     "review": "node --no-warnings src/cli/review.ts",
     "rejudge": "node --no-warnings src/cli/rejudge.ts",

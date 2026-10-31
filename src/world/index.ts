@@ -14,6 +14,7 @@ export {
   crashOnce,
   currentActor,
   enter,
+  freshAttempt,
   InstanceCrashed,
   pauseOnce,
   pausePoint,

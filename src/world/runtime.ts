@@ -251,6 +251,24 @@ export function beginRun(): Promise<never> {
 }
 
 /**
+ * Starts a fresh attempt within the current run, for a scenario that replays a race many times: the call
+ * and time budgets start again, pauses and crashes still armed are dropped, requests left over from the
+ * last attempt are dead, and the trace starts again, so a failure's trace is its own attempt's. A
+ * livelock still fails the run.
+ */
+export function freshAttempt(): void {
+  epoch++;
+  inFlight = 0;
+  callsThisRun = 0;
+  timeThisRun = 0;
+  pauses = [];
+  pausesActive = 0;
+  targetedCrashes = [];
+  if (trace) trace.length = 0;
+  cut = undefined;
+}
+
+/**
  * Every world method calls this after its scheduling point and before acting. Returns the call's
  * number (0 outside the solution), kills the instance if a crash is planned for this call, and
  * refuses calls from an instance that is already dead.
