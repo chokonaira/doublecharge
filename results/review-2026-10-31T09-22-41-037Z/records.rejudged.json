@@ -205,7 +205,7 @@
     "attack": {
       "status": "confirmed",
       "how": "as written",
-      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000; the order is not fully refunded but never shipped"
+      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000"
     }
   },
   {
@@ -237,7 +237,7 @@
     "attack": {
       "status": "confirmed",
       "how": "as written",
-      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000; the order is not fully refunded but never shipped"
+      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000"
     }
   },
   {
@@ -328,7 +328,7 @@
     "attack": {
       "status": "confirmed",
       "how": "as written",
-      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000; the order is not fully refunded but never shipped"
+      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000"
     }
   },
   {
@@ -344,7 +344,7 @@
     "attack": {
       "status": "confirmed",
       "how": "as written",
-      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000; the order is not fully refunded but never shipped"
+      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000"
     }
   },
   {
@@ -931,7 +931,7 @@
     "attack": {
       "status": "confirmed",
       "how": "as written",
-      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000; the order is not fully refunded but never shipped"
+      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000"
     }
   },
   {
@@ -947,7 +947,7 @@
     "attack": {
       "status": "confirmed",
       "how": "as written",
-      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000; the order is not fully refunded but never shipped"
+      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000"
     }
   },
   {
@@ -1322,7 +1322,7 @@
     "attack": {
       "status": "confirmed",
       "how": "as written",
-      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000; the order is not fully refunded but never shipped"
+      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000"
     }
   },
   {
@@ -1354,7 +1354,7 @@
     "attack": {
       "status": "confirmed",
       "how": "as written",
-      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000; the order is not fully refunded but never shipped"
+      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000"
     }
   },
   {
@@ -1862,7 +1862,7 @@
     "attack": {
       "status": "confirmed",
       "how": "as written",
-      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000; the order is not fully refunded but never shipped"
+      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000"
     }
   },
   {
@@ -1894,7 +1894,7 @@
     "attack": {
       "status": "confirmed",
       "how": "as written",
-      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000; the order is not fully refunded but never shipped"
+      "detail": "the order was shipped 2 times; the seller's balance is 2000; with 0 refunded it should be 1000"
     }
   },
   {

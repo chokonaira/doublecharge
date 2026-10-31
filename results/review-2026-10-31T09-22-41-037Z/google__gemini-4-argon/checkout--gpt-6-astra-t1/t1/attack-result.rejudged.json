@@ -6,11 +6,11 @@
     {
       "actor": "A",
       "call": "db.transaction",
-      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:22096752-b841-46b0-a7a2-43e96d7fb023\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:beb6282c-d981-4454-bde3-db035130416b\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
     },
     {
       "actor": "A",
-      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:22096752-b841-46b0-a7a2-43e96d7fb023",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:beb6282c-d981-4454-bde3-db035130416b",
       "result": "card_declined"
     },
     {
@@ -20,13 +20,13 @@
     },
     {
       "actor": "B",
-      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:22096752-b841-46b0-a7a2-43e96d7fb023",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:beb6282c-d981-4454-bde3-db035130416b",
       "result": "replayed card_declined"
     },
     {
       "actor": "B",
       "call": "db.transaction",
-      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:22096752-b841-46b0-a7a2-43e96d7fb023\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..."
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:beb6282c-d981-4454-bde3-db035130416b\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..."
     },
     {
       "actor": "B",
@@ -36,17 +36,17 @@
     {
       "actor": "C",
       "call": "db.transaction",
-      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:d5dcc121-7103-4d81-b392-ad51aef944bb\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:ebad54b7-8fae-45a5-a92c-10fcf3617c3d\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
     },
     {
       "actor": "C",
-      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:d5dcc121-7103-4d81-b392-ad51aef944bb",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:ebad54b7-8fae-45a5-a92c-10fcf3617c3d",
       "result": "processed"
     },
     {
       "actor": "C",
       "call": "db.transaction",
-      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:d5dcc121-7103-4d81-b392-ad51aef944bb\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"paid\"}"
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:ebad54b7-8fae-45a5-a92c-10fcf3617c3d\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"paid\"}"
     },
     {
       "actor": "C",
