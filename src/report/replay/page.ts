@@ -410,4 +410,15 @@ $("foot").replaceChildren(
   el("p", { text: "The statement is drawn from the trace’s PayCo and Shipping calls. Model replies and code appear exactly as they were graded." }),
 );
 
-openCase(caseFromHash(location.hash, new Set(byId.keys())) ?? DATA.featured[0]!.id, { play: false });
+// The first case opens complete, so the page reads at a glance; then, unless the viewer prefers less
+// motion, it plays from the start once, so nobody has to find the Play button to see what it does.
+const first = caseFromHash(location.hash, new Set(byId.keys())) ?? DATA.featured[0]!.id;
+openCase(first, { play: false });
+if (!reduced) {
+  setTimeout(() => {
+    if (ep.id === first && !playing() && step === ep.trace.length) {
+      seek(0);
+      start();
+    }
+  }, 1500);
+}

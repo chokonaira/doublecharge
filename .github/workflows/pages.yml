@@ -1,0 +1,41 @@
+name: Pages
+
+# Publishes the Replay and the Failure Atlas as a website, so the README links to pages that run
+# rather than to HTML source. GitHub Pages is free only for public repositories, so this does nothing
+# while the repository is private. It needs Pages turned on once: Settings, Pages, Source: GitHub Actions.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Collect the pages
+        run: |
+          mkdir -p site
+          cp results/replay.html site/index.html
+          cp results/replay.html site/replay.html
+          cp results/atlas.html site/atlas.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
