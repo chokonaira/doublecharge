@@ -10,7 +10,7 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "typecheck": "tsc",
+    "typecheck": "tsc && tsc -p tsconfig.browser.json",
     "test": "node --no-warnings --test \"test/**/*.test.ts\"",
     "coverage": "c8 npm test",
     "audit": "node --no-warnings src/cli/audit.ts",
@@ -22,7 +22,7 @@
     "rejudge": "node --no-warnings src/cli/rejudge.ts",
     "atlas": "node --no-warnings src/cli/atlas.ts",
     "fill": "node --no-warnings src/cli/fill.ts",
-    "theatre": "node --no-warnings src/cli/theatre.ts",
+    "replay": "node --no-warnings src/cli/replay.ts",
     "art": "node --no-warnings src/cli/art.ts",
     "reproduce": "node --no-warnings src/cli/reproduce.ts"
   },

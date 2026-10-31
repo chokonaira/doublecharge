@@ -58,7 +58,7 @@ try {
   }
 
   // The README's tables, intervals and headline numbers, the Replay and the pictures, against the records.
-  const checked = spawnSync(process.execPath, ["--no-warnings", "--test", "test/readme.test.ts", "test/theatre.test.ts", "test/art.test.ts"], { cwd: ROOT, encoding: "utf8" });
+  const checked = spawnSync(process.execPath, ["--no-warnings", "--test", "test/readme.test.ts", "test/replay.test.ts", "test/art.test.ts"], { cwd: ROOT, encoding: "utf8" });
   const ok = checked.status === 0;
   if (!ok) failures++;
   console.log(ok ? "ok    the README's tables and numbers, the Replay and the pictures match the records" : `FAIL  README, Replay or pictures:\n${checked.stdout.split("\n").filter((l) => /not ok|expected|actual/.test(l)).join("\n")}`);

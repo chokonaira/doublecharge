@@ -1,34 +1,68 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import vm from "node:vm";
 
 const ROOT = join(import.meta.dirname, "..");
 const EVAL = join(ROOT, "results/2026-10-31T09-10-10-916Z");
 const REVIEW = join(ROOT, "results/review-2026-10-31T09-22-41-037Z");
 
-interface Theatre {
+interface ReplayPage {
   featured: { id: string; title: string }[];
   episodes: { id: string; part: number; outcome: string; detail: string; trace: { call: string }[]; code: string; overturned?: string }[];
   codes: Record<string, string>;
 }
 
-describe("replay theatre", () => {
-  const dir = mkdtempSync(join(tmpdir(), "doublecharge-theatre-"));
-  const out = join(dir, "theatre.html");
-  const artifact = join(dir, "theatre.artifact.html");
-  execFileSync(process.execPath, ["--no-warnings", join(ROOT, "src/cli/theatre.ts"), "--eval", EVAL, "--review", REVIEW, "--out", out, "--artifact", artifact]);
+describe("the Replay", () => {
+  const dir = mkdtempSync(join(tmpdir(), "doublecharge-replay-"));
+  const out = join(dir, "replay.html");
+  const artifact = join(dir, "replay.artifact.html");
+  execFileSync(process.execPath, ["--no-warnings", join(ROOT, "src/cli/replay.ts"), "--eval", EVAL, "--review", REVIEW, "--out", out, "--artifact", artifact]);
   const page = readFileSync(out, "utf8");
   const start = page.indexOf('id="data" type="application/json">') + 'id="data" type="application/json">'.length;
   const embedded = page.slice(start, page.indexOf("</script>", start));
-  const data = JSON.parse(embedded) as Theatre;
+  const data = JSON.parse(embedded) as ReplayPage;
 
   it("embeds the runs as data that model code and replies cannot break out of", () => {
     assert.ok(!embedded.includes("<"), "no raw < inside the embedded data");
     assert.equal(page.match(/<script>/g)?.length, 1, "only the page's own script element");
-    assert.ok(!page.includes("/*DATA*/"));
+    assert.ok(!page.includes("/*DATA*/") && !page.includes("/*SCRIPT*/"), "both placeholders filled");
+  });
+
+  it("carries its page script, compiled from TypeScript, and it parses", () => {
+    const start = page.lastIndexOf("<script>") + "<script>".length;
+    const script = page.slice(start, page.indexOf("</script>", start));
+    assert.ok(script.includes("openCase"), "the bundled page script is in the page");
+    assert.doesNotThrow(() => new vm.Script(script), "the page script compiles");
+  });
+
+  it("does not mistake text in the data that reads /*SCRIPT*/ for the script's place", () => {
+    // A copy of the review run in which one reviewer's attack summary contains the placeholder.
+    const review = join(dir, "review");
+    cpSync(REVIEW, review, { recursive: true });
+    const attackFile = join(review, "anthropic__claude-opus-5.5/checkout--mutant-no-idempotency-key/t1/attack.json");
+    const attack = JSON.parse(readFileSync(attackFile, "utf8")) as { summary: string };
+    writeFileSync(attackFile, JSON.stringify({ ...attack, summary: `${attack.summary} /*SCRIPT*/ /*DATA*/` }));
+    const tricky = join(dir, "tricky.html");
+    execFileSync(process.execPath, ["--no-warnings", join(ROOT, "src/cli/replay.ts"), "--eval", EVAL, "--review", review, "--out", tricky]);
+    const html = readFileSync(tricky, "utf8");
+    const at = html.indexOf('id="data" type="application/json">') + 'id="data" type="application/json">'.length;
+    const parsed = JSON.parse(html.slice(at, html.indexOf("</script>", at))) as ReplayPage;
+    assert.ok(parsed.episodes.some((e) => (e as { summary?: string }).summary?.includes("/*SCRIPT*/")));
+    assert.ok(html.slice(html.lastIndexOf("<script>")).includes("openCase"));
+  });
+
+  it("only uses classes its stylesheet styles", () => {
+    const css = readFileSync(join(ROOT, "src/report/replay/template.html"), "utf8");
+    const code = readFileSync(join(ROOT, "src/report/replay/page.ts"), "utf8");
+    const literals = [...code.matchAll(/className: (`[^`]*`|"[^"]*")|classList\.(?:toggle|add|remove)\("([^"]+)"/g)].map((m) => (m[1] ?? m[2] ?? "").replace(/\$\{[^}]*\}/g, " "));
+    const classes = new Set(literals.flatMap((l) => l.replace(/[`"]/g, " ").split(/\s+/)).filter((c) => /^[a-z][a-z-]*$/.test(c)));
+    // Classes the page sets from values it computes (stamp, line kinds, outcomes, dots).
+    for (const c of ["held", "withdrawn", "land", "pending", "dup", "void", "quiet", "empty", "broken", "bad", "good", "enter", "current", "shake"]) classes.add(c);
+    for (const c of classes) assert.match(css, new RegExp(`\\.${c}\\b`), `.${c} is set by the page but never styled`);
   });
 
   it("plays every failed Part 1 scenario and every Part 2 attack that ran, each with its code and trace", () => {

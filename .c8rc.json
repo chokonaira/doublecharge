@@ -12,7 +12,8 @@
     "tasks/*/mutants/**",
     "tasks/*/reference.ts",
     "src/world/types.ts",
-    "src/report/records.ts"
+    "src/report/records.ts",
+    "src/report/replay/page.ts"
   ],
   "reporter": [
     "text",

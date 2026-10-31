@@ -26,6 +26,7 @@
     "test"
   ],
   "exclude": [
-    "test/fixtures"
+    "test/fixtures",
+    "src/report/replay/page.ts"
   ]
 }

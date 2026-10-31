@@ -1,0 +1,10 @@
+{
+  // The Replay's page script runs in a browser: checked with the DOM library and no Node types.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": []
+  },
+  "include": ["src/report/replay/page.ts", "src/report/replay/logic.ts"],
+  "exclude": []
+}
