@@ -66,6 +66,6 @@ export function renderReviewSummary(records: ReviewRecord[], models: string[]): 
     "### New bugs proven in code the grader passed",
     ...(discoveries.length ? discoveries : ["- none"]),
     "",
-    `${noVerdict ? `${noVerdict} replies had no verdict line and are left out. ` : ""}${failed ? `${failed} calls failed at the API or the grader and are left out. ` : ""}Total cost: $${cost.toFixed(2)}`,
+    `${noVerdict ? `${noVerdict} replies had no verdict line and are left out of the review table${trials > 1 ? " (the cross-trial table counts them)" : ""}. ` : ""}${failed ? `${failed} calls failed at the API or the grader and are left out. ` : ""}Total cost: $${cost.toFixed(2)}`,
   ].join("\n");
 }

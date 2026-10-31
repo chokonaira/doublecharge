@@ -75,11 +75,13 @@ async function runJob(model: string, sample: Sample, trial: number): Promise<voi
     console.log(`skip    ${model.padEnd(28)} ${sample.id}  budget $${budget} reached`);
     return;
   }
+  // What a reply cost is kept even if handling it fails afterwards.
+  let meta = { cost: 0, ms: 0 };
   try {
     const reply = await spending.track(() => complete({ apiKey, model, system: REVIEW_SYSTEM, prompt, maxTokens: Number(args["max-tokens"]) }));
+    meta = { cost: reply.cost, ms: reply.ms };
     writeFileSync(join(dir, "prompt.md"), prompt);
     writeFileSync(join(dir, "reply.md"), reply.content);
-    const meta = { cost: reply.cost, ms: reply.ms };
     const verdict = verdictOf(reply.content);
     if (!verdict) {
       record = { ...base, ...meta, verdict: "none", note: reply.finishReason === "length" ? "reply truncated" : "no verdict line" };
@@ -98,7 +100,7 @@ async function runJob(model: string, sample: Sample, trial: number): Promise<voi
       }
     }
   } catch (e) {
-    record = { ...base, verdict: "none", error: e instanceof Error ? e.message : String(e) };
+    record = { ...base, ...meta, verdict: "none", error: e instanceof Error ? e.message : String(e) };
   }
   writeFileSync(join(dir, "record.json"), JSON.stringify(record, null, 2));
   records.push(record);
