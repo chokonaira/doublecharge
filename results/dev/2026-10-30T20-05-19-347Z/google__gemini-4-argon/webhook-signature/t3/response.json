@@ -1,0 +1,54 @@
+{
+  "id": "gen-1793390939-LUdKLeaF3tiMkpCs1yPR",
+  "object": "chat.completion",
+  "created": 1793390939,
+  "model": "google/gemini-4-argon",
+  "provider": "Google AI Studio",
+  "system_fingerprint": null,
+  "service_tier": null,
+  "choices": [
+    {
+      "index": 0,
+      "logprobs": null,
+      "finish_reason": "stop",
+      "native_finish_reason": "STOP",
+      "message": {
+        "role": "assistant",
+        "content": "```ts\nimport { createHmac, timingSafeEqual } from 'node:crypto';\n\nexport function verifyWebhook(\n  rawBody: string,\n  signatureHeader: string,\n  secrets: string[],\n  nowSeconds: number\n): unknown {\n  if (typeof rawBody !== 'string') {\n    throw new Error('Invalid rawBody');\n  }\n  if (typeof signatureHeader !== 'string' || !signatureHeader) {\n    throw new Error('Missing or invalid signature header');\n  }\n  if (!Array.isArray(secrets) || secrets.length === 0) {\n    throw new Error('No secrets provided');\n  }\n  if (typeof nowSeconds !== 'number' || !Number.isFinite(nowSeconds)) {\n    throw new Error('Invalid nowSeconds');\n  }\n\n  let timestampStr: string | undefined;\n  const v1Signatures: Buffer[] = [];\n\n  const parts = signatureHeader.split(',');\n  for (const part of parts) {\n    const eqIdx = part.indexOf('=');\n    if (eqIdx === -1) continue;\n\n    const key = part.slice(0, eqIdx).trim();\n    const val = part.slice(eqIdx + 1).trim();\n\n    if (key === 't') {\n      if (timestampStr !== undefined) {\n        throw new Error('Multiple timestamps in signature header');\n      }\n      timestampStr = val;\n    } else if (key === 'v1') {\n      // SHA-256 hex string must be 64 hex characters (32 bytes)\n      if (/^[0-9a-fA-F]{64}$/.test(val)) {\n        v1Signatures.push(Buffer.from(val, 'hex'));\n      }\n    }\n  }\n\n  if (!timestampStr || !/^-?\\d+$/.test(timestampStr)) {\n    throw new Error('Invalid or missing timestamp');\n  }\n\n  const timestamp = Number(timestampStr);\n  if (!Number.isSafeInteger(timestamp)) {\n    throw new Error('Timestamp is not a safe integer');\n  }\n\n  if (Math.abs(nowSeconds - timestamp) > 300) {\n    throw new Error('Timestamp outside the 300s tolerance window');\n  }\n\n  if (v1Signatures.length === 0) {\n    throw new Error('No valid v1 signatures found');\n  }\n\n  const signedPayload = `${timestampStr}.${rawBody}`;\n  let matched = false;\n\n  for (const secret of secrets) {\n    if (typeof secret !== 'string' || secret.length === 0) continue;\n    const expectedSig = createHmac('sha256', secret).update(signedPayload, 'utf8').digest();\n\n    for (const sig of v1Signatures) {\n      if (sig.length === expectedSig.length && timingSafeEqual(sig, expectedSig)) {\n        matched = true;\n      }\n    }\n  }\n\n  if (!matched) {\n    throw new Error('Signature verification failed');\n  }\n\n  return JSON.parse(rawBody);\n}\n```",
+        "refusal": null,
+        "reasoning": null,
+        "reasoning_details": [
+          {
+            "type": "reasoning.encrypted",
+            "data": "ElkKVwFpFH0TK6UXck0SY5kyCuAV5R4ImyFz/zMSHWc3WTWceQMB8sY0DU0QNxU4PniEfWVKiRWWwH/SVwUXTF7TQ0rvjlbsrd1TDOb9YF9BKtbGhjNuRotDcA==",
+            "format": "google-gemini-v1",
+            "index": 0
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 460,
+    "completion_tokens": 714,
+    "total_tokens": 1174,
+    "cost": 0.00806,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00806,
+      "upstream_inference_prompt_cost": 0.00092,
+      "upstream_inference_completions_cost": 0.00714
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

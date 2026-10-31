@@ -1,0 +1,54 @@
+{
+  "id": "gen-1793390912-4yLsIbfE6oyjDgWi1bNp",
+  "object": "chat.completion",
+  "created": 1793390912,
+  "model": "google/gemini-4-argon",
+  "provider": "Google",
+  "system_fingerprint": null,
+  "service_tier": "default",
+  "choices": [
+    {
+      "index": 0,
+      "logprobs": null,
+      "finish_reason": "stop",
+      "native_finish_reason": "STOP",
+      "message": {
+        "role": "assistant",
+        "content": "```ts\ninterface Ctx {\n  db: Db;\n  payco: PayCo;\n  shipping: unknown;\n}\n\ninterface Db {\n  get<T>(key: string): Promise<T | undefined>;\n  set<T>(key: string, value: T): Promise<void>;\n  insertIfAbsent<T>(key: string, value: T): Promise<boolean>;\n  update<T>(key: string, fn: (current: T | undefined) => T): Promise<T>;\n  transaction<T>(fn: (tx: Tx) => T): Promise<T>;\n  delete(key: string): Promise<void>;\n}\n\ninterface Tx {\n  get<T>(key: string): T | undefined;\n  set<T>(key: string, value: T): void;\n  delete(key: string): void;\n}\n\ninterface PayCo {\n  createPayout(p: {\n    amount: number;\n    currency: string;\n    destination: string;\n    idempotencyKey?: string;\n  }): Promise<Payout>;\n}\n\ninterface Payout {\n  id: string;\n  amount: number;\n  currency: string;\n  destination: string;\n  created: number;\n}\n\ntype WithdrawResult = \"paid_out\" | \"insufficient_funds\" | \"rejected\";\n\ninterface WithdrawalRecord {\n  requestId: string;\n  userId: string;\n  amount: number;\n  status: \"pending\" | WithdrawResult;\n  payoutId?: string;\n}\n\n/**\n * Reconciliation helper for any pending withdrawals belonging to the user.\n * If the client closes the app during a timeout or crash, a withdrawal might remain \"pending\".\n * Subsequent withdrawals for the same user will resolve those pending states before checking balance.\n *\n * Note on limitation: If a request crashes during `createPayout` and neither this user nor any system\n * process ever calls `withdraw` again, the reserved funds remain in a `pending` state in the DB\n * because there are no background workers/timers in the provided runtime. Deducting (reserving)\n * before calling PayCo is the safest approach to strictly prevent double-spending / overdrafts.\n */\nasync function reconcilePendingWithdrawals(userId: string, currentRequestId: string, ctx: Ctx): Promise<void> {\n  const pendingKey = `user_pending_withdrawals:${userId}`;\n  const pendingIds = (await ctx.db.get<string[]>(pendingKey)) ?? [];\n\n  for (const reqId of pendingIds) {\n    if (reqId === currentRequestId) continue;\n    const record = await ctx.db.get<WithdrawalRecord>(`withdrawal:${reqId}`);\n    if (!record || record.status !== \"pending\") {\n      await removePendingId(ctx.db, pendingKey, reqId);\n      continue;\n    }\n\n    try {\n      await settlePendingWithdrawal(record, ctx);\n    } catch {\n      // If PayCo is still timing out or unavailable, leave it pending for now.\n    }\n  }\n}\n\nasync function removePendingId(db: Db, pendingKey: string, requestId: string): Promise<void> {\n  await db.update<string[]>(pendingKey, (list = []) => list.filter((id) => id !== requestId));\n}\n\nasync function settlePendingWithdrawal(\n  record: WithdrawalRecord,\n  ctx: Ctx,\n): Promise<WithdrawResult> {\n  const reqKey = `withdrawal:${record.requestId}`;\n  const walletKey = `wallet:${record.userId}`;\n  const pendingKey = `user_pending_withdrawals:${record.userId}`;\n\n  try {\n    const payout = await ctx.payco.createPayout({\n      amount: record.amount,\n      currency: \"EUR\",\n      destination: record.userId,\n      idempotencyKey: `withdrawal:${record.requestId}`,\n    });\n\n    await ctx.db.transaction((tx) => {\n      const current = tx.get<WithdrawalRecord>(reqKey);\n      if (current && current.status === \"pending\") {\n        tx.set<WithdrawalRecord>(reqKey, {\n          ...current,\n          status: \"paid_out\",\n          payoutId: payout.id,\n        });\n      }\n      const pendingList = tx.get<string[]>(pendingKey) ?? [];\n      tx.set(\n        pendingKey,\n        pendingList.filter((id) => id !== record.requestId),\n      );\n    });\n\n    return \"paid_out\";\n  } catch (err: any) {\n    if (err && err.code === \"payout_rejected\") {\n      // Refund the reserved amount back to the user's wallet atomically\n      await ctx.db.transaction((tx) => {\n        const current = tx.get<WithdrawalRecord>(reqKey);\n        if (current && current.status === \"pending\") {\n          const balance = tx.get<number>(walletKey) ?? 0;\n          tx.set<number>(walletKey, balance + current.amount);\n          tx.set<WithdrawalRecord>(reqKey, {\n            ...current,\n            status: \"rejected\",\n          });\n        }\n        const pendingList = tx.get<string[]>(pendingKey) ?? [];\n        tx.set(\n          pendingKey,\n          pendingList.filter((id) => id !== record.requestId),\n        );\n      });\n\n      return \"rejected\";\n    }\n\n    // For timeouts or unexpected errors, rethrow so the caller can retry.\n    // The funds remain safely reserved and the record stays \"pending\".\n    throw err;\n  }\n}\n\nexport async function withdraw(\n  req: { requestId: string; userId: string; amount: number },\n  ctx: Ctx,\n): Promise<\"paid_out\" | \"insufficient_funds\" | \"rejected\"> {\n  const { requestId, userId, amount } = req;\n\n  if (!Number.isInteger(amount) || amount < 0) {\n    throw new Error(\"Invalid withdrawal amount\");\n  }\n\n  // Opportunistically settle any abandoned pending withdrawals for this user\n  // so their refunded funds (if rejected) become available.\n  await reconcilePendingWithdrawals(userId, requestId, ctx);\n\n  const reqKey = `withdrawal:${requestId}`;\n  const walletKey = `wallet:${userId}`;\n  const pendingKey = `user_pending_withdrawals:${userId}`;\n\n  // Step 1: Atomically check idempotency and reserve funds from the wallet.\n  const record = await ctx.db.transaction((tx): WithdrawalRecord => {\n    const existing = tx.get<WithdrawalRecord>(reqKey);\n    if (existing) {\n      if (existing.userId !== userId || existing.amount !== amount) {\n        const err = new Error(\"Idempotency key reused with different parameters\") as Error & { code: string };\n        err.code = \"idempotency_mismatch\";\n        throw err;\n      }\n      return existing;\n    }\n\n    const balance = tx.get<number>(walletKey) ?? 0;\n    if (balance < amount) {\n      // Do not persist \"insufficient_funds\" or modify the wallet; requirements state\n      // \"change nothing\" on insufficient funds. Or if retried with same requestId, re-evaluating is safe.\n      return {\n        requestId,\n        userId,\n        amount,\n        status: \"insufficient_funds\",\n      };\n    }\n\n    // Deduct/reserve funds immediately to prevent concurrent double-spending\n    tx.set<number>(walletKey, balance - amount);\n\n    const pendingRecord: WithdrawalRecord = {\n      requestId,\n      userId,\n      amount,\n      status: \"pending\",\n    };\n    tx.set<WithdrawalRecord>(reqKey, pendingRecord);\n\n    const pendingList = tx.get<string[]>(pendingKey) ?? [];\n    if (!pendingList.includes(requestId)) {\n      tx.set<string[]>(pendingKey, [...pendingList, requestId]);\n    }\n\n    return pendingRecord;\n  });\n\n  // Step 2: If already terminal (or insufficient funds), return immediately.\n  if (record.status !== \"pending\") {\n    return record.status;\n  }\n\n  // Step 3: Execute the payout with PayCo using the deterministic idempotency key,\n  // and finalize the transaction state.\n  return await settlePendingWithdrawal(record, ctx);\n}\n```",
+        "refusal": null,
+        "reasoning": null,
+        "reasoning_details": [
+          {
+            "type": "reasoning.encrypted",
+            "data": "AY89a1/zDmzgnWa/T9EgoiagMEkbGAk8QD6P9FwLOe8mjAoP17fT6Hc4eidQhEwFmAELCQfZhxx30SwybZjEbhxGwiPrDto0iSNzfxHiS8NAqBcwGQ==",
+            "format": "google-gemini-v1",
+            "index": 0
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 1418,
+    "completion_tokens": 1929,
+    "total_tokens": 3347,
+    "cost": 0.022126,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.022126,
+      "upstream_inference_prompt_cost": 0.002836,
+      "upstream_inference_completions_cost": 0.01929
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "id": "gen-1793390920-bg4nPnRdc7wxk4dlUxfU",
+  "object": "chat.completion",
+  "created": 1793390920,
+  "model": "google/gemini-4-argon",
+  "provider": "Google",
+  "system_fingerprint": null,
+  "service_tier": "default",
+  "choices": [
+    {
+      "index": 0,
+      "logprobs": null,
+      "finish_reason": "stop",
+      "native_finish_reason": "STOP",
+      "message": {
+        "role": "assistant",
+        "content": "```ts\nexport interface OrderLine {\n  sellerId: string;\n  amount: string;\n}\n\nexport interface Order {\n  currency: string;\n  lines: OrderLine[];\n  discount: string;\n}\n\nexport interface SplitResult {\n  platformFee: number;\n  payouts: Record<string, number>;\n}\n\n// Explicit fallback map for ISO 4217 currencies with non-2 decimal places\nconst NON_TWO_DECIMALS: Record<string, number> = {\n  // 0 decimals\n  BIF: 0, CLP: 0, DJF: 0, GNF: 0, ISK: 0, JPY: 0, KMF: 0, KRW: 0,\n  MGA: 0, PYG: 0, RWF: 0, UGX: 0, UYI: 0, VND: 0, VUV: 0, XAF: 0,\n  XOF: 0, XPF: 0,\n  // 3 decimals\n  BHD: 3, IQD: 3, JOD: 3, KWD: 3, LYD: 3, OMR: 3, TND: 3,\n  // 4 decimals\n  CLF: 4, UYW: 4,\n};\n\nfunction getCurrencyDecimals(currency: string): number {\n  const code = currency.toUpperCase();\n  if (Object.prototype.hasOwnProperty.call(NON_TWO_DECIMALS, code)) {\n    return NON_TWO_DECIMALS[code];\n  }\n  try {\n    const resolved = new Intl.NumberFormat('en-US', {\n      style: 'currency',\n      currency: code,\n    }).resolvedOptions();\n    if (typeof resolved.maximumFractionDigits === 'number') {\n      return resolved.maximumFractionDigits;\n    }\n  } catch {\n    // Fallback to default 2 if currency is unknown to Intl\n  }\n  return 2;\n}\n\nfunction parseToMinorUnits(amountStr: string, decimals: number): bigint {\n  const trimmed = amountStr.trim();\n  const isNegative = trimmed.startsWith('-');\n  const clean = isNegative || trimmed.startsWith('+') ? trimmed.slice(1) : trimmed;\n\n  const [wholePart = '0', fracPart = ''] = clean.split('.');\n  const paddedFrac = fracPart.padEnd(decimals, '0').slice(0, decimals);\n\n  const combined = wholePart + paddedFrac;\n  const val = BigInt(combined || '0');\n  return isNegative ? -val : val;\n}\n\nexport function splitOrder(order: Order): SplitResult {\n  const decimals = getCurrencyDecimals(order.currency);\n  const discountMinor = parseToMinorUnits(order.discount, decimals);\n\n  const linesMinor = order.lines.map((line, index) => ({\n    index,\n    sellerId: line.sellerId,\n    amount: parseToMinorUnits(line.amount, decimals),\n  }));\n\n  if (linesMinor.length === 0) {\n    return { platformFee: 0, payouts: {} };\n  }\n\n  const totalAmount = linesMinor.reduce((acc, l) => acc + l.amount, 0n);\n\n  const allocations = new Array<bigint>(linesMinor.length).fill(0n);\n\n  if (discountMinor > 0n && totalAmount > 0n) {\n    let allocatedSum = 0n;\n    const remainders: { index: number; rem: bigint }[] = [];\n\n    for (let i = 0; i < linesMinor.length; i++) {\n      const numerator = discountMinor * linesMinor[i].amount;\n      const floorShare = numerator / totalAmount;\n      const rem = numerator % totalAmount;\n\n      allocations[i] = floorShare;\n      allocatedSum += floorShare;\n      remainders.push({ index: i, rem });\n    }\n\n    const leftover = Number(discountMinor - allocatedSum);\n\n    if (leftover > 0) {\n      remainders.sort((a, b) => {\n        if (b.rem !== a.rem) {\n          return b.rem > a.rem ? 1 : -1;\n        }\n        return a.index - b.index; // Tie-break: earlier line first\n      });\n\n      for (let i = 0; i < leftover; i++) {\n        allocations[remainders[i].index] += 1n;\n      }\n    }\n  }\n\n  let totalPlatformFee = 0n;\n  const payouts: Record<string, number> = {};\n\n  for (let i = 0; i < linesMinor.length; i++) {\n    const line = linesMinor[i];\n    const netAmount = line.amount - allocations[i];\n\n    // 2.9% = 29 / 1000. Round half up:floor((net * 29 + 500) / 1000)\n    const fee = (netAmount * 29n + 500n) / 1000n;\n    const sellerPayout = netAmount - fee;\n\n    totalPlatformFee += fee;\n    payouts[line.sellerId] = (payouts[line.sellerId] ?? 0) + Number(sellerPayout);\n  }\n\n  return {\n    platformFee: Number(totalPlatformFee),\n    payouts,\n  };\n}\n```",
+        "refusal": null,
+        "reasoning": null,
+        "reasoning_details": [
+          {
+            "type": "reasoning.encrypted",
+            "data": "AY89a1/pq/Vn4hIbqtYY5lktzn6sRI1VYMVB4ve9kXrprAGXpbLagpl29JRkWCzOIf6A8eqdaSSGE2BH5gJEI+/nFFkLu0wQrbfCTBGUQFhee/Rp5w==",
+            "format": "google-gemini-v1",
+            "index": 0
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 516,
+    "completion_tokens": 1271,
+    "total_tokens": 1787,
+    "cost": 0.013742,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.013742,
+      "upstream_inference_prompt_cost": 0.001032,
+      "upstream_inference_completions_cost": 0.01271
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

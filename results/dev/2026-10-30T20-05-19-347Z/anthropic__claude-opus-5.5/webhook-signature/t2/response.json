@@ -1,0 +1,55 @@
+{
+  "id": "gen-1793390777-lrigqw9vESar3vrMuHbE",
+  "object": "chat.completion",
+  "created": 1793390777,
+  "model": "anthropic/claude-opus-5.5",
+  "provider": "Claude Platform on AWS",
+  "system_fingerprint": null,
+  "service_tier": "default",
+  "choices": [
+    {
+      "index": 0,
+      "logprobs": null,
+      "finish_reason": "stop",
+      "native_finish_reason": "end_turn",
+      "message": {
+        "role": "assistant",
+        "content": "```ts\nimport { createHmac, timingSafeEqual } from \"node:crypto\";\n\nconst TOLERANCE_SECONDS = 300;\nconst HEX_SHA256 = /^[0-9a-fA-F]{64}$/;\n\n/**\n * Verifies a PayCo webhook signature header and returns the parsed JSON body.\n * Throws on any verification failure.\n */\nexport function verifyWebhook(\n  rawBody: string,\n  signatureHeader: string,\n  secrets: string[],\n  nowSeconds: number\n): unknown {\n  if (typeof rawBody !== \"string\") throw new Error(\"Invalid webhook body\");\n  if (typeof signatureHeader !== \"string\" || signatureHeader.length === 0) {\n    throw new Error(\"Missing webhook signature header\");\n  }\n  if (!Array.isArray(secrets)) {\n    throw new Error(\"No webhook secrets configured\");\n  }\n  const usableSecrets = secrets.filter((s) => typeof s === \"string\" && s.length > 0);\n  if (usableSecrets.length === 0) {\n    throw new Error(\"No webhook secrets configured\");\n  }\n  if (typeof nowSeconds !== \"number\" || !Number.isFinite(nowSeconds)) {\n    throw new Error(\"Invalid current time\");\n  }\n\n  // Parse header: comma-separated key=value pairs. Unknown schemes are ignored.\n  let timestampRaw: string | undefined;\n  let timestampCount = 0;\n  const v1Signatures: Buffer[] = [];\n\n  for (const part of signatureHeader.split(\",\")) {\n    const idx = part.indexOf(\"=\");\n    if (idx <= 0) continue;\n    const key = part.slice(0, idx).trim();\n    const value = part.slice(idx + 1).trim();\n    if (key === \"t\") {\n      timestampCount++;\n      timestampRaw = value;\n    } else if (key === \"v1\") {\n      // Only well-formed SHA-256 hex digests can ever match; skip anything else.\n      if (HEX_SHA256.test(value)) {\n        v1Signatures.push(Buffer.from(value, \"hex\"));\n      }\n    }\n    // Other schemes (e.g. v0) are deliberately ignored.\n  }\n\n  // Exactly one timestamp is required; ambiguity is rejected.\n  if (timestampCount !== 1 || timestampRaw === undefined || !/^\\d+$/.test(timestampRaw)) {\n    throw new Error(\"Invalid or missing webhook timestamp\");\n  }\n  const timestamp = Number(timestampRaw);\n  if (!Number.isSafeInteger(timestamp)) {\n    throw new Error(\"Invalid webhook timestamp\");\n  }\n  if (v1Signatures.length === 0) {\n    throw new Error(\"No v1 webhook signature found\");\n  }\n\n  // Sign exactly the timestamp text as received, so the signed payload matches PayCo's.\n  const signedPayload = `${timestampRaw}.${rawBody}`;\n\n  // Check every (secret, signature) pair without early exit to avoid leaking\n  // which pair matched via timing.\n  let matched = false;\n  for (const secret of usableSecrets) {\n    const expected = createHmac(\"sha256\", secret).update(signedPayload, \"utf8\").digest();\n    for (const sig of v1Signatures) {\n      // Lengths are guaranteed equal (32 bytes) by the hex regex above.\n      if (sig.length === expected.length && timingSafeEqual(sig, expected)) {\n        matched = true;\n      }\n    }\n  }\n\n  if (!matched) {\n    throw new Error(\"Webhook signature verification failed\");\n  }\n\n  if (Math.abs(nowSeconds - timestamp) > TOLERANCE_SECONDS) {\n    throw new Error(\"Webhook timestamp outside tolerance\");\n  }\n\n  try {\n    return JSON.parse(rawBody);\n  } catch {\n    throw new Error(\"Webhook body is not valid JSON\");\n  }\n}\n```",
+        "refusal": null,
+        "reasoning": "I'm working out the parsing details carefully: splitting the header on commas and equals signs, validating that the timestamp field is a single integer, and requiring the signature to be exactly 64 hex characters compared with a constant-time check against each secret's expected value.\n\n",
+        "reasoning_details": [
+          {
+            "type": "reasoning.text",
+            "text": "I'm working out the parsing details carefully: splitting the header on commas and equals signs, validating that the timestamp field is a single integer, and requiring the signature to be exactly 64 hex characters compared with a constant-time check against each secret's expected value.\n\n",
+            "format": "anthropic-claude-v1",
+            "index": 0,
+            "signature": "CAQS+AgKEAgTGAI4AUIIdGhpbmtpbmcSDK8s9TEjdJuN9ys2KBoMsq/wuYN+ej2fhMffIjB58tLBSvQwvVNatVbhCrChn1Vngj7WqQcZqDsUN2V2FaoZw7XtMFfO0t8rS1jx7h0qlQieJt4A+xPPSjqRZXtu8TZsghkzDNFO15zVmFB+/ZDOU476X4VAokA9FY10x38CaZnNGyDh2WL93qloSBIAUqDMAKArnaAKcDfPgjLJ/KghOPLHdsl61q0fNnlJ7SD54vzGfg3TN/S5Xpy9Oex3Q70IXlwpYT/QgyGVPBMaR9zSo7N+aRzq5d5joNJR6A03D6Poo8NO8bDXmrgnlO5K9YPZ84uelnQohuDZQJnm4C1OH1akqfrW66tNJO5JIa5ZVrN3eeaxBz1x1jBCvaohxXancKisRmZ+Ecq8RyUQfsrQ3tdDbCgZw/XDMYPYFWJP/tknUQhapk2Gr3Ktz9oFK8f7gJwO6ASKwTJnjaJBAMD+2CBcZLFa4pbT2+xugaSUGWY5IJvyPZ6Gp7vAplWYcCk1mxCTqXxT4MM6a5+I5ytjgGaXAwU+9d0nNX3gektyn23gxdTb2Q8X7+Do1BJv/gskSCvsPmJSPCGNbpheEa7ETkIs7f1EsZBF2UeEK/Loc/nncy5K4+1p6lkuNoBYf7UPxn+d7hV/5H0q3EFJGgqzfcFNb5a4YSeBzjjS7gGtDtMIBQ+H/kUaSic+Hy6DyKTXdougJBtBmcXkGCaY80hVgQQhWbOGKNOcxzljMfFaLutM77UaXdvQIpZdi1PERR7JfzKGwc2Vk+3ojheQQYvRI4RCWa6ZAGGS3+GFJX7K7H517FP21Tf0MOp/SPEqzSJxX1+k7dr5DjHi+2yokb/G3rVB2VgFioZXm7gFTGxV6Cy91dCNWxpIsG+tz/RmnLrhwu1Z0wr56eXpAZGnF3ZkCsp69ZDUu0BLmbKqlpN9HNv6p/LcH2QXNtXyfcRihejNDGswDCwoVX2qC3fK9vHa2rJpBnwIVHBEt+gxRmJ7haMNJ9BaYixKcOaS2yCz6C06NltrsNoPEPlEV3kGTCoMvqatxpDB8NY/ZV9ahi7Q0ddGOWzbxjD1qnL8PiWD2xdzZt3L3YDUIsAWZRM3LAPL8//YcfV/7WSIsK4yUwP0+EL8zw4bAbJbCnOD2IX4bxXmrw1vg8G8AN7vQyc2uyunB9DAoNgoAWTrebuhn7O1boRqpscO6zecT7Ktpr57yJouvsPMzVPWAAkJU0a7L9nsLkWnWi9WPu74R0qCrGay2+J8r8F71qzQeO/uBxcNr0xRzB4jxTq/j2ZSvgEMDSDpMj+w34McqSeTvbjUZbSxTF7Bh38Iu3E27BZqgy0cHu5RUp/IfGO5G4WoQX71coou9qfyqyyn/u9yawITuCdIgc1s0hUu55QWU4IEpTPTBx9iuRtds9xQtF2GS/wEIyHy3wzgXCP1A+c0/xN8NyHY9aSsy/tPDTHGHTFH/2g8+H6IgnlceXHkx9f1vf7smDZTVoM+5oTvGAE=.eyJlbmRwb2ludF9zbHVnIjoiYW50aHJvcGljL2NsYXVkZS1vcHVzLTUuNS0yMDI2MDkyMXxjbGF1ZGUtb24tYXdzIn0"
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 603,
+    "completion_tokens": 1542,
+    "total_tokens": 2145,
+    "cost": 0.033252,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.033252,
+      "upstream_inference_prompt_cost": 0.002412,
+      "upstream_inference_completions_cost": 0.03084
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 193,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

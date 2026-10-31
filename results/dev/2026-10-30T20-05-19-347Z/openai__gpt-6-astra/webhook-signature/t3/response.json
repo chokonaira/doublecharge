@@ -1,0 +1,55 @@
+{
+  "id": "gen-1793390885-Ggx3bGNgUpkb2dQhUDZy",
+  "object": "chat.completion",
+  "created": 1793390885,
+  "model": "openai/gpt-6-astra",
+  "provider": "OpenAI",
+  "system_fingerprint": null,
+  "service_tier": "default",
+  "choices": [
+    {
+      "index": 0,
+      "logprobs": null,
+      "finish_reason": "stop",
+      "native_finish_reason": "completed",
+      "message": {
+        "role": "assistant",
+        "content": "```ts\nimport { createHmac, timingSafeEqual } from \"node:crypto\";\nimport { Buffer } from \"node:buffer\";\n\nexport function verifyWebhook(\n  rawBody: string,\n  signatureHeader: string,\n  secrets: string[],\n  nowSeconds: number,\n): unknown {\n  const reject = (): never => {\n    throw new Error(\"Invalid PayCo webhook signature\");\n  };\n\n  if (!Number.isFinite(nowSeconds)) reject();\n\n  let timestampText: string | undefined;\n  const signatures: Buffer[] = [];\n\n  for (const part of signatureHeader.split(\",\")) {\n    const separator = part.indexOf(\"=\");\n    if (separator === -1) continue;\n\n    const scheme = part.slice(0, separator).trim();\n    const value = part.slice(separator + 1).trim();\n\n    if (scheme === \"t\") {\n      // Reject duplicate timestamps rather than interpret an ambiguous header.\n      if (timestampText !== undefined) reject();\n      timestampText = value;\n    } else if (scheme === \"v1\" && /^[0-9a-fA-F]{64}$/.test(value)) {\n      signatures.push(Buffer.from(value, \"hex\"));\n    }\n    // Unknown schemes and malformed signatures cannot contribute a match.\n  }\n\n  if (timestampText === undefined || !/^[0-9]+$/.test(timestampText)) {\n    reject();\n  }\n\n  const timestamp = Number(timestampText);\n  if (\n    !Number.isSafeInteger(timestamp) ||\n    Math.abs(timestamp - nowSeconds) > 300 ||\n    signatures.length === 0 ||\n    secrets.length === 0\n  ) {\n    reject();\n  }\n\n  // Preserve the header's timestamp spelling in the authenticated payload.\n  const payload = `${timestampText}.${rawBody}`;\n  let matched = false;\n\n  for (const secret of secrets) {\n    const expected = createHmac(\"sha256\", secret)\n      .update(payload, \"utf8\")\n      .digest();\n\n    for (const signature of signatures) {\n      // All decoded signatures are exactly 32 bytes. Evaluate every pair,\n      // without stopping when a matching secret or signature is found.\n      const equal = timingSafeEqual(expected, signature);\n      matched = equal || matched;\n    }\n  }\n\n  if (!matched) reject();\n\n  return JSON.parse(rawBody) as unknown;\n}\n```",
+        "refusal": null,
+        "reasoning": null,
+        "reasoning_details": [
+          {
+            "type": "reasoning.encrypted",
+            "data": "gAAAAABq5Pkq7m9-FwzBFQX_0HrwRa87gg3EfvdYZ2PH2WxtB4xqnEWJYeBPcPfeaJ9adQ8xtUG77MNMHa6JrQogwm-oiusgS6ah8QPkQBt5ZXbAcRYau1NOCbbamyiUBx2n-dbDugP9yindKE_QZzc0Sj38s2B-rERx3pL8rHNKv2_WLODC2dZobrdCy9PIOdH2pB7BW-ELX0v9s8klhbTCPDsNe1qNoyvx8FAKqkbGDB-ngrwEW8u5wJw-Ld-2txBOvyYJrSNnbGp_fxMVlzvcvPjKENIQrUv81VAnUl-nnYjWXB2pFyxxUunGmC1ss-e0Sf-n4qHas8XbkgbzgDbvg8I6qxXZa2nIuw87J2atAgVB3RTNLW_E1BAehrqOeSE_93HoG6XA_DsGFDHyHCIJjzU-tOf3ZzLomd1WEIN0Wkx-tDJXTGuiQfNC1HG1p879cayBak5Ff0cos0V33ZD2_MFbxt_IrYTKEtOiH1U8sBPZlHzCi8W2G4VKIG3FaMGAbMAbxJjtn3B-z2CBluivXwbvgAMSjeUzrqV3jAi9z7iV0Nhl8xyforoA-lW9flXj6pIFh1SEvAI-3K3W9lRqzuU6ScXRKFlGtbkAz7EhKHFSx5KZec4uGatk3ROjvm-RLKu1zzlvQHYB7NW-iP5ygES4z0tYpTuKe-jICeGoWYxECj7hq77i8cqexHEn0Fy9XHnWFrHZkTdNXVuxdCkjt1Pj-MmViw0hcQT9ssSofvX5ItWC1zk6xckj_9JOsLAe5Wu-JKZdyJdtnB0ifu6D5uKi40zL5keJpPY4KHCVpFuN-px68DeblhynpACVMzCEN5Lylydm1-sBI0qVPjCAbnan30fW8UiphuqVwnsWXaP9NS61EUlm3lztJCPclQ0kldtYLNy5JuXbNI-Ub80zGNOuuEuM2YNote2UCozmoTwy0ORBoiZLEpr_tbl6k-XKYXxddgfSZSG4s5PiDq4p5YKvWqfaknxUcJmNw8UnO-jr3rYPSlZaUVHWa1VkUoqUroQGd6hP5rTtzbPeJC10yGHYRQJ1QDJEPY5W6Uc9bjFzITMsfPSMg1xYgXAcpVDu57xQaJ853T6NCuUc9SJXPWsDEJvwdMtzCT4W4bGuh1C1VspqDcZZlPYD_uxsIyHInTuOoJgqeOslpe9BYMl5cMkAAUXLc-mygHRH9labVLrG6SeCGi8R3OV0qVbALxUTVIGD_xUfQ0uEkhhuVUYb8QlaW6c22DIJGHizQerFOJkVQJm4t3ob9TOqFDsUA4x-liUo5YLTWX-Iv2e6q1gc_tnSWK4OQmLidHim4v0kBMYwuBnmAyZU1UrRxvkkJzP-mWPNw4tLq6CmPoh6Mnz_yoijlPzFko4vZyKoCYdzL9Swe00CERkORUaOarZHuD-kbxJyJXybxGxDjnBgnTo0msPP_5DewjF2_JoP0zyvm6etJwA3jg1p40KGQ-p5-GJ3qRZA737M0gWh4PG-FalVCxcLmgJ2qkU_Pr8M5kvDjDmcxBqDPH_5JpJAW8ihYZqqn_CBcPOvAYEMo-j-IDHvLfaJrJP7H99rJ3eb3LET_nNh8ZnvHiwLd2083m68HrhCniTmzSeuhCZnkXThx10j8J2ER7e2T1m_pjgip_-oRNyv1OLV9tzhFI4By3WxPwc_izRhyhCt70hsSPY5lz9ncx2vAWNMbnSJdvlZmuykBp7CyP5mm5sYlGuvOyfvDz72AYK9_yWMvzv71BlMtzR4oFziiOzEit052E-3wA5gOZn7cTV_7rYLgtL2goMYh3BT0DwmWO3Duq3epjFlrqxR-92_PUgcH6hXliSbb6h-99ZJJr9Ij9FF6zrmUtlr61phbPO8j0kkG6c26WAuiXClyzyOt6TuV9w0HaClAvG_-qra54BycSvhZvAfhAYEd0fUggWbtBZV0HYm4Gi3xnUmWuRFsMdfvRwrS9_u0CxYkClttDXbx4lq_Ls5R3J2ecQGhuf9fPsgs7QzmP670yWYUErwT3AoNJ3XS6xWiweUPFCH3G0LKksuL4_LLpVozbEluhcCqn5gAYdBGjwPThGyhqww6HHM_nZ_Ix7715xT7-svkP9y04IRS6zMXT6SPFWDaYfzXkpHuzxpupIi2nY3wIEALgdrY-iIjRkRJdD5ILZspxvomJ2rjbPm0F4KyqTT4GFjgPtlQAdefxUHic9fjIfdkhrWNZAKogS9bqjMcZ1rOgUeLmm4YPdoVY-COZgjQHx4vDocdw-EWreT5XhYnt_BB6NpvRRxpsi1ZkVR9_GD5b8wYGSUq5vVumIZPLRYxFvACXju-TKls5wtuwGhzRwc5nJ6I2g7alBB6IlncfPYxVyxQnZef2EJ0wsaDNqOIC3c6cOTPHIHLA2jgN8yrGABPbDNo3YWrq7o8Uw6bq0v8q3oB-iwFNApTMot_Fj2tSSgt-kmcm2gMl88iCy1_1Vfh2-C3pJjDvPmsap9a5E6EaOVvB8ywdIxZDDe1TmtkPHPHnbHiDnsvrfpClZZGKXLswWFBZFC5V79ftWRrAEdEcddxcnMB3so5Ei9IkyEQNbqt0uSKRoRIOPfbcsOea56k4C8-MjHoyTTW2sWvvqaSbFdpy9s1Y-LYxew5AVRRBrXu8zvIDYnySVbZyEY60fbTMyptoILNT0PO8d0k6Sckf4ygNDCOCmPYLBkl5cL9Obraoh6yfX5eZiPrigBfL9bJTwa_mZ-hd49rX63k56Pm9jwjyPniT_FjFhjX8S0vYajNoEdaTkAwVGil-7HfvkPCHVKqS_A5H48Lg7tTZY4hk4mc1Imu8NjvZ-JEVqWdxuBqhohTjrumw5DzUj8fcFTdevOs4ZcIRsOh349lCm_Kw47POb3MWAN8axINysj97JCHycHow3aKeHUeNVqvBBQ1pao2g0c1xchDKiuin7KzbmNBJrMeOLXqzITS7g3HNgrk0Fe5zk6AZY3lrjH2swu4JCrZYcyUUXYJyUn0HmJ629nHpcjr0x2ksdLflTwWXOM_rtqaUGxIW5rLgbXmYs38SlvyvWkzTgqNaf9roGVtsEh6A73UWVOSqavqttnT3a9M-76S9tPvEqztIvbIHkHQS0m1YXa3Tpkg5Vla3kcoVP4mWFAp4xLxqeDLA7vPkKt8JoLNVd8apjv6lysBvYQBdLWqmda2YRVty19_0ruLHkSluUFh-VGUJ2nBIiKlNhKsguk1dVBLR9PgMqcEZEp5XpQu_LIvKK3ZQ-7ames3otS3KywpJLJzo_LszpcXiZk4QjuLtHgpOySIHtpYiXtk_zXbwLT-OyEY0TLg2lAmyqMCkPj720xVA0hgASu3RnWZdG8ktkr3_itOOf5TFv7zLyl5bB5l9rgMcCQxK6616kvTtfTFkhrpB7O-V358nKdBreGt7JaWGQsXSj-Er1l9qslgA==.eyJlbmRwb2ludF9zbHVnIjoib3BlbmFpL2dwdC02LWFzdHJhLTIwMjYwOTAzfG9wZW5haSJ9",
+            "format": "openai-responses-v1",
+            "id": "rs_0cb8e5d216b03eb2016ae4f9268f4087d2a03a26ff7a8004e2",
+            "index": 0
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 398,
+    "completion_tokens": 614,
+    "total_tokens": 1012,
+    "cost": 0.03468,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.03468,
+      "upstream_inference_prompt_cost": 0.00398,
+      "upstream_inference_completions_cost": 0.0307
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 127,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

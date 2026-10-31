@@ -1,0 +1,12 @@
+[
+  {
+    "scenario": "a single withdrawal",
+    "points": 10,
+    "failures": 0
+  },
+  {
+    "scenario": "bank rejects the payout",
+    "points": 10,
+    "failures": 0
+  }
+]

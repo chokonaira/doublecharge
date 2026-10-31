@@ -1,0 +1,92 @@
+{
+  "status": "confirmed",
+  "how": "as written",
+  "detail": "A answered \"declined\" after the customer had been charged",
+  "trace": [
+    {
+      "actor": "A",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
+    },
+    {
+      "actor": "A",
+      "call": "db.get checkout:o1",
+      "result": "none"
+    },
+    {
+      "actor": "B",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
+    },
+    {
+      "actor": "B",
+      "call": "db.get checkout:o1",
+      "result": "none"
+    },
+    {
+      "actor": "B",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:0",
+      "result": "card_declined"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed checkout:o1={\"attempt\":1}, order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..."
+    },
+    {
+      "actor": "C",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..."
+    },
+    {
+      "actor": "C",
+      "call": "db.get checkout:o1",
+      "result": "{\"attempt\":1}"
+    },
+    {
+      "actor": "C",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:1",
+      "result": "processed"
+    },
+    {
+      "actor": "C",
+      "call": "instance killed",
+      "result": "right after the call above, before seeing its result"
+    },
+    {
+      "actor": "A",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:0",
+      "result": "replayed card_declined"
+    },
+    {
+      "actor": "A",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "C settle 1",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..."
+    },
+    {
+      "actor": "C settle 1",
+      "call": "db.get checkout:o1",
+      "result": "{\"attempt\":1}"
+    },
+    {
+      "actor": "C settle 1",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:1",
+      "result": "replayed original result"
+    },
+    {
+      "actor": "C settle 1",
+      "call": "db.transaction",
+      "result": "committed order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"paid..."
+    },
+    {
+      "actor": "final press settle 1",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"paid..."
+    }
+  ]
+}

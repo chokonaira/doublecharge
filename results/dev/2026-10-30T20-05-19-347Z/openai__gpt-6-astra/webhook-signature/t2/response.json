@@ -1,0 +1,61 @@
+{
+  "id": "gen-1793390884-TXCTYQGkd2FjxpNJjBU1",
+  "object": "chat.completion",
+  "created": 1793390884,
+  "model": "openai/gpt-6-astra",
+  "provider": "OpenAI",
+  "system_fingerprint": null,
+  "service_tier": "default",
+  "choices": [
+    {
+      "index": 0,
+      "logprobs": null,
+      "finish_reason": "stop",
+      "native_finish_reason": "completed",
+      "message": {
+        "role": "assistant",
+        "content": "```ts\nimport { createHmac, timingSafeEqual } from \"node:crypto\";\nimport { Buffer } from \"node:buffer\";\n\nexport function verifyWebhook(\n  rawBody: string,\n  signatureHeader: string,\n  secrets: string[],\n  nowSeconds: number,\n): unknown {\n  const invalid = (): never => {\n    throw new Error(\"Invalid webhook signature or timestamp\");\n  };\n\n  let timestampText: string | undefined;\n  const signatures: Buffer[] = [];\n\n  for (const part of signatureHeader.split(\",\")) {\n    const entry = part.trim();\n    const separator = entry.indexOf(\"=\");\n    const scheme = (separator < 0 ? entry : entry.slice(0, separator)).trim();\n    const value = separator < 0 ? \"\" : entry.slice(separator + 1).trim();\n\n    if (scheme === \"t\") {\n      // Reject ambiguous timestamps rather than choosing one.\n      if (timestampText !== undefined || !/^-?\\d+$/.test(value)) {\n        invalid();\n      }\n      timestampText = value;\n    } else if (scheme === \"v1\" && /^[0-9a-fA-F]{64}$/.test(value)) {\n      signatures.push(Buffer.from(value, \"hex\"));\n    }\n    // Unknown schemes and unusable signatures cannot authenticate a request.\n  }\n\n  if (timestampText === undefined) {\n    invalid();\n  }\n\n  const timestamp = Number(timestampText);\n  if (\n    !Number.isSafeInteger(timestamp) ||\n    !Number.isFinite(nowSeconds) ||\n    Math.abs(nowSeconds - timestamp) > 300 ||\n    signatures.length === 0 ||\n    secrets.length === 0\n  ) {\n    invalid();\n  }\n\n  // Preserve the timestamp's header representation in the signed message.\n  const message = `${timestampText}.${rawBody}`;\n  let matched = false;\n\n  for (const secret of secrets) {\n    const expected = createHmac(\"sha256\", secret)\n      .update(message, \"utf8\")\n      .digest();\n\n    for (const signature of signatures) {\n      // Both buffers are exactly 32 bytes. Do not stop at the first match.\n      const matches = timingSafeEqual(expected, signature);\n      matched = matches || matched;\n    }\n  }\n\n  if (!matched) {\n    invalid();\n  }\n\n  return JSON.parse(rawBody) as unknown;\n}\n```",
+        "refusal": null,
+        "reasoning": "**Considering timing and security**\n\nI'm thinking about how to implement a timing-safe comparison for all pairs without allowing any early breaks that could lead to secret leakage. It's essential to ensure that I'm looping through the entire process while using an updated boolean with a timing-safe equal check on each iteration. I need to be cautious about potential runtime denial-of-service attacks, and even though comments might not be necessary, I should ensure everything parses correctly after dealing with errors like invalid webhook signatures.",
+        "reasoning_details": [
+          {
+            "type": "reasoning.summary",
+            "summary": "**Considering timing and security**\n\nI'm thinking about how to implement a timing-safe comparison for all pairs without allowing any early breaks that could lead to secret leakage. It's essential to ensure that I'm looping through the entire process while using an updated boolean with a timing-safe equal check on each iteration. I need to be cautious about potential runtime denial-of-service attacks, and even though comments might not be necessary, I should ensure everything parses correctly after dealing with errors like invalid webhook signatures.",
+            "format": "openai-responses-v1",
+            "index": 0
+          },
+          {
+            "type": "reasoning.encrypted",
+            "data": "gAAAAABq5Pkv8nuuasMeO5Ktj2L2DkZZKhPTBMohEIPnYUIl5MKWM4hMwl6x53MK0limFpWlW9poWQ3c5DUcxry04UJQkNv4-E7IcPBgjm4qpb6KiugU6_-Qk2WHnPr6GzR13bxyPYRbhlsFVBO6sw8nbQNrzTlNdp8bL1AX0VvDBjhdnFIoBMEEHq5pHSjkAyBgR48JtiolPp_sUIcmGRV6zoAViXoOx_Pn3r5IKz75DO7f6Ghqi6Hlc2prys2fDBg4Kvo6cYZYun-7MHKvBfFs55p6o-tWHgtXRvtVGELNuMBmFJfqGMDYbUEoXwPe3524mGqCp6iAqjo19CXqFSms68kAwhDv_jiReLf4XpOI78Z3-EN4EmpBc_TWTZBQWJSZV7I0eNEXFZY5vUEonvNoVTIaYt0cCbWPk5HhVZByh7D6CuzmtF2y8yMlWZFBigcdUa_r2V-Ogvp2cR5r1OOj0ylb55GRObRU4ixnl3LvAfK4Fo-XZq8UOL7UH5_rf5o9quTc-sKLMd3ZcVzacu2Na8Ceg9n5oeNgtQmuXFroPpVsKZdpO5fLIL728pK7QIfA3YA16ZqgyHhe-X1jNIHW239aDaMuatwVsF1ZC1NSJuzg1LaJpdlf6RsDbGXN8XFK3HMu4g8leBsi9usAyEoRNRCwY2_YwzKI7FkHxCizq_-5g4Q59wpCORQY_tF8reKw-BGbyr6jhKpk-_zxPLBqf_QkS0AiTz8VuoGB4ES2NIZbDHGwja1RtXvSM8CUl6IA9-bEWr_SPLZEMUdiZqM9j1z1sUkxIclNxjkvJkJGjQYAIKJ-eu4Kc4fn54pB37Fr3aot4F_BibDxbqFChJ7uEHejCbohNsuthMWDgec3GMqwW1O6ZfbE_3sMPU7oZNyFomOZx2wtUxT3nOwpZX0NTyJOvlXpg5ku0y3EIPcOh8oUpcDUwwOP_5_hpsyi5imy3nvrjYbhCt1KJjVJ5xTnWKrs_p1k7G2rLzASr9-uB9N_7KoOVrZ1qsBZfLW7vwtRvV5vsL2QWGEz-aTj_A-7ddY7mFVQB5U8WUyoCu5k2yxvjzZneUUKA59Kn7cp9qSPAf3sisS_O_hjjshpd4L50QyYVQwv7MMRkzzKfm1bSbzpKCFEdtrBBvLSUlM5Fid5LUAyIAd6Oj1KRumyMAJxK2_2VsaM0oUqfE8wORxCkJ_7nYSiGUZCJGnWX7mqSWDWeQRNL5R1D8lyLO1w2_CPE7sjfd-nC5OUaTFRBMV4XiJdxEuTZus6xxwDOk57qR8CNtJK9vRwNpkWCCU5jvCZmFCHXAtC6nnn02iQFZcGqQyPaiuAyFdOzIXqx2AoUFUgBlOeMpik1zuSFVWVMpov9qOjaoxDWQ0s1qobe2ZttG4SU68ekWqIqy62Ila79Dle6X38Wna0BcUA0QxTCV4uV5eaiS6_HxPFfMoCw5UMVhIPsQcjxIT5mPUiT-JwDnQGGjyuj9dWzAMASVNbOs7iywCvPJ59x9vpcRQBqqPCX8q-UvVm91iA5kygi9AdwhBOfCuVFKcsQzim8TJ7RaOsR7QBoNoAIq40FuNVcOlz-dyk6EuktYadD6KHWa0GqIhGXUeNyRGVPwBm45ADVlmZl7adL17R1UsSqHNDpV6Tc9ZVDcGhN3F5CuA6-OPm_bOgnN7GF_E-Xy7RnNk9boyrKBoRU9aEKjQoXloLHpPlASAC6ezpEL6QD_YnD4yfPYgkllMfj1mOWw1qzJPhOpwskmJQazw4EsQF1wgyT5oTwdFyeR-C716OTUUfj_Nr7w7BBYNTltuwVpNBnG-S56IZvhx4Nz7hJgZYE5S7-yc11Cg48r-2ncUoZzp3Wmnp8p9AxDNqS4Uu5I3BI1OEggc-PcMNi-A4tW83iVR5N7cManOqhOkiDS5-BukBP0G7hnXkJ3tiIma_8rlhDodNhUawiNmx7kmy7glIKe1RHURzBj2bqIs_6kLs8mUKtDZXW0Tz6LeGUyxCcmv2UbtkKEXDO8R7tODxinqVTTc9w5NWE0uiU3zs3vtf96ZlACD3-5Yv8WwM-kzAd0FAho7voNeVcz6grmtIFf6DeZizNmAP4RXGYVb3NtdfbBhP3VONkC5MBgncoae-eReOo7QxJ6Dg3BNxFB9m13XgLV5Dkpg7xdMDuXbZbkE101N9dWeIYTa8EbIiF_gGjlaUrvKTBOaRmUNm1nSAY86aVc61Omp8fOeUq6E1rEYf-jYGDXkvAxJj2Kzsi0R0YQSNQIbEE1WFOsShVHeIQ7l66A9dIzDMOtJd5cC4QhrCg_bojl7AbPWOzI1jn7al8RWi2hj-pY05wOIA4akNtZGUDSU1Bbexu4IprKn1OmC9xmbcqW_f-pj3n9gvmU7VdlXZ9haBFyihiyRmmcmg3jLyR1Z7C0Fga59o77qokqmK1gc2hCQb1CWjo9Lt6a75oOkWQrlSMj3di0z-C1FgJzh-PIEQMo2IF4eBHQeYVGGVAA1uQ-ZassanMPXPr5gjQwefeXb9LR4UKweHaF88Rbknq3DUTFhkif4syMywobVYa8EY4ryVPhAP1NAaekmcOrOXopCHT45qSTEOe5FmqGIDej-sybDRPrzH4GO2qR5WuUGdQVYJL-RxNSjVBrpNbMrTPERNotTlGp-nyk3shnf917jYfYV3bzBiTenKl3bDFk1FgCV2OxtRHe8LSIJNVr1BqW-LHvtTKZFL92-y-vS1EQZYuklg8E3VfBd5inWvlAVyxnwz_aDMSCsY83671vd1pQNm_WS-KMO7Lv0LLONmEuRP6BQq7Ij5WfARhQYj2-PrWlZ9Sx2zt2QYZ2sCPGvpGmLP9Nw8SuYhogFeWF4_IGlWbgGk5ksWRjB6gDGEiWiQ2q3qTIJZtEwftaiEC5SQ2aooWyW0uE-UOf0_pUWaJB_7QKzfdVRAHbGHM9TncaioQmo5HlffROuCN-T_nDlx6p18k0DmODBaRm9bUs7O83xdxE8KyYvtzX7IGOlNqPdUHejpxCdxnIIWJgSptbhPUTkU8SWSzc2Lyhq1Ew47IPSfU6R0GrOOtBybCFjtpAjnAreHZUaLfrX9uVIbFL6CaQZ1hm1X0T6YSKVXb7dYqkh3kATDQFB8x4NRL8KiYq_Cx5sBsv_s68YeEIumnP_YsN8AZXEwd3FpSNFIcb3mRsQGqMHLHttjOCcFhvJyQSEn_Q9UFwPsJEVu6G-bF1k_nGsy_d9GDlELndsPzdf69u0o09wWGvgXm566loQLv0Ldsi2tle5WW-lULLzTAwKMA8JWKVsiw90d2fB55OIW-LKLuDOhBCBekSnSQ3dmJdAYrpzCNBDcYfd7hOJ1LPxJ_e59xiOYTCYE9jiDVVcsLM_ORC3V1SDpICJS7zD-rUsWFyZM5FzlGVvUBjAqgl9-6NZv3PDqil2NIvEAmSBs79FMqmRor_KC9KtAO9Vy570kE39-206t_45xjcJ9NbJWZ2dxRigjc6LVRR1v2TQ4Ainf-NSFAM_uUmfQe5BMXVUsTWM5uQyPI8UeekLTyYszQQ9zGXFbmsIrafxX3T1oYtHlZ0oz93u_1X0R2RsbIGlUye1Il1bwJwf0XFRigYcEwwtRQmsdL7L2uLq6kFT9W1TU-nZUP6rHDm3cco46kz4CutPrX-LbE2H-wrseKJlFK_zeB57U0xxFbCHemA4asmR3-rsecLxHLT_KMzfPC1MHn9YyAXbqk1ZNd5evWYX44ZZVHLXarAiXgAGjKY4yZGE7JzDTXHcl8WdRUoyidmDUEht_hB_i7HbFjUkCM4W5T5llF3ezC5aQ5p3d2oFe9TmZbXW9x_idl1lPoW5AAJHyGrdsFCgOCvGfk6HcHnSD1UM2svMJZcGDfAQ-1Wbs3s_1COlWMwShpAD2O9wZmeqBgLjaXy4SA7N_VYfogAAAQVaQrkF0XdkdD0DXg1djs-Ku4AYKH7NlxzYid_GDKnP79Dn2_paNfmZWxfP_2m7OV7b_3w5YI2AxCDjoCbhw1E5-cH2jlClYaZWjhwxw97smkmNurDK7LS0gCZr-Zb94CZMeYjnBiCnuxv4ABFJScQRwreI_nqpl-Qoy0fYxGGA6ZgU1CvxHonHBwIc-d9-DYf7AWAsXeAihj3Uq7YAbXKo2a6PEfVpwo_WJawNIL0BiWCkXr1P6rVdxEvJ1E74KdAsxrqxTcqVX9A0-IYi5kxSo9R6yAKAJzwbAO3g3hIsn-JLQ3eHujd4kpCP6CcSwzEgkW9KMa2S4CfoitJjzubKzyHBlWW2AeQdNshGpVOYDyWgKMe2Rd_7Qqmcj-1JvBNTb-2-gNMKA0oSVi_bZhRO83FJUA4Aicbg5QWZzVAMwI6IzankK1WZV14aINLgw4YBXWnzN3a-2BVe5qVBroGkFW49CmhC2mhapNY10JwzeD0rWNtCAkgcXZq3F2KiHpBSM9dtr5wc8ZFNQyaawUtC1vB5cG-E7VSXWmSi_Dbo18sH27jufwmB4wWqVAs9yxqnPZq1xeqIiu90GE5ahGNIpVxS2AIesrbnkRDiMDUZqmXZPYgJIyoTBiOyFfhDaHprqt7ZeQtpImTnUenUhaAJjVjGUOQ5iKdpU5ewMQ6zWzaDGwkMUmLLpAwM_QS8hiPsQRbs0UK4KlsQCkbKclib2GVuxl4YISP2z0c4OrwdfYikc4hOKc1zxXMaY3EHFg9Y58Wu7YWYGKZ1t-sltN6Umd7CdgNT7g-ZbWLLBjmz8GzjBScZpph2X_MHH_xRGw9UZ8xWqF_bYlfr_5dg3tyGAt1avoWPhMM4lUg87D07yKL1-vaUqKZT6_1UspH7YwrzZ3Ilk51Q-AxgBgeYv2sIChkC6peAZAzSxX92sLEI1dre4_HFCDIRuY6IVEDFPr3KYQgXHDbA4GWE1z3qYA43rQOAccx4xJ0WmtoVOLFxpcJuolznseP7HoSEmOFVc0l6FVyBaNMy-Oy66R2Z1aVtibWiuY2ymW43T3zpiflCGBAMLSMivihv5tiDVBxc5UCDe2QKhjt1MgGhPjA==.eyJlbmRwb2ludF9zbHVnIjoib3BlbmFpL2dwdC02LWFzdHJhLTIwMjYwOTAzfG9wZW5haSJ9",
+            "format": "openai-responses-v1",
+            "id": "rs_0a22200c2281fe62016ae4f926891887d2a52f8e016cae5d66",
+            "index": 1
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 398,
+    "completion_tokens": 739,
+    "total_tokens": 1137,
+    "cost": 0.04093,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.04093,
+      "upstream_inference_prompt_cost": 0.00398,
+      "upstream_inference_completions_cost": 0.03695
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 248,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

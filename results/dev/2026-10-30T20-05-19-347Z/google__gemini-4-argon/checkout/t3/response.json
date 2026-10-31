@@ -1,0 +1,54 @@
+{
+  "id": "gen-1793390894-mXjddW2tdz6bwRNmOmKB",
+  "object": "chat.completion",
+  "created": 1793390894,
+  "model": "google/gemini-4-argon",
+  "provider": "Google",
+  "system_fingerprint": null,
+  "service_tier": "default",
+  "choices": [
+    {
+      "index": 0,
+      "logprobs": null,
+      "finish_reason": "stop",
+      "native_finish_reason": "STOP",
+      "message": {
+        "role": "assistant",
+        "content": "```ts\nimport { randomUUID } from \"node:crypto\";\n\ninterface Ctx {\n  db: Db;\n  payco: PayCo;\n  shipping: unknown;\n}\n\ninterface Db {\n  get<T>(key: string): Promise<T | undefined>;\n  set<T>(key: string, value: T): Promise<void>;\n  insertIfAbsent<T>(key: string, value: T): Promise<boolean>;\n  update<T>(key: string, fn: (current: T | undefined) => T): Promise<T>;\n  transaction<T>(fn: (tx: Tx) => T): Promise<T>;\n  delete(key: string): Promise<void>;\n}\n\ninterface Tx {\n  get<T>(key: string): T | undefined;\n  set<T>(key: string, value: T): void;\n  delete(key: string): void;\n}\n\ninterface PayCo {\n  createCharge(p: {\n    amount: number;\n    currency: string;\n    customerId: string;\n    metadata?: Record<string, string>;\n    idempotencyKey?: string;\n  }): Promise<Charge>;\n  getCharge(id: string): Promise<Charge>;\n  listCharges(filter?: { customerId?: string }): Promise<Charge[]>;\n}\n\ninterface Charge {\n  id: string;\n  amount: number;\n  currency: string;\n  customerId: string;\n  metadata: Record<string, string>;\n  status: \"succeeded\";\n  amountRefunded: number;\n  created: number;\n}\n\ninterface Order {\n  id: string;\n  customerId: string;\n  amount: number;\n  currency: string;\n  status: \"pending\" | \"paid\" | \"declined\";\n}\n\ninterface CheckoutState {\n  idempotencyKey: string;\n  inFlight: boolean;\n  startedAt: number;\n  chargeId?: string;\n}\n\n// Callers retry after ~1 minute, and an instance can be killed at any time.\n// A lock older than this is assumed to belong to a dead instance.\nconst LOCK_TTL_MS = 45_000;\n\nexport async function checkout(orderId: string, ctx: Ctx): Promise<\"paid\" | \"declined\"> {\n  const orderKey = `order:${orderId}`;\n  const stateKey = `checkout_state:${orderId}`;\n  const now = Date.now();\n  const candidateKey = `order:${orderId}:attempt:${randomUUID()}`;\n\n  // Atomically check order status, reuse any unfinished attempt's idempotencyKey\n  // (to prevent double-charging after a timeout or crash), or allocate a fresh key\n  // (so a retry after a card decline and card update makes a new charge attempt).\n  const prep = await ctx.db.transaction((tx) => {\n    const order = tx.get<Order>(orderKey);\n    if (!order) {\n      throw new Error(`Order not found: ${orderId}`);\n    }\n\n    if (order.status === \"paid\") {\n      return { action: \"already_paid\" as const };\n    }\n\n    const state = tx.get<CheckoutState>(stateKey);\n    if (state?.chargeId) {\n      // A previous execution recorded a succeeded charge before crashing.\n      tx.set<Order>(orderKey, { ...order, status: \"paid\" });\n      return { action: \"already_paid\" as const };\n    }\n\n    if (state?.inFlight && now - state.startedAt < LOCK_TTL_MS) {\n      // Another live instance is currently charging this order; fail fast so we\n      // don't race and overwrite a new idempotency key after a decline.\n      const err = new Error(\"Checkout already in progress\") as Error & { code: string };\n      err.code = \"concurrent_checkout\";\n      throw err;\n    }\n\n    // Reuse existing idempotencyKey if a previous attempt crashed/timed out before\n    // recording a definitive outcome; otherwise use the newly generated key.\n    const idempotencyKey = state?.idempotencyKey ?? candidateKey;\n    tx.set<CheckoutState>(stateKey, {\n      idempotencyKey,\n      inFlight: true,\n      startedAt: now,\n    });\n\n    return {\n      action: \"charge\" as const,\n      order,\n      idempotencyKey,\n    };\n  });\n\n  if (prep.action === \"already_paid\") {\n    return \"paid\";\n  }\n\n  const { order, idempotencyKey } = prep;\n\n  try {\n    const charge = await ctx.payco.createCharge({\n      amount: order.amount,\n      currency: order.currency,\n      customerId: order.customerId,\n      metadata: { orderId: order.id },\n      idempotencyKey,\n    });\n\n    await ctx.db.transaction((tx) => {\n      const currentOrder = tx.get<Order>(orderKey) ?? order;\n      tx.set<Order>(orderKey, { ...currentOrder, status: \"paid\" });\n      tx.set<CheckoutState>(stateKey, {\n        idempotencyKey,\n        inFlight: false,\n        startedAt: now,\n        chargeId: charge.id,\n      });\n    });\n\n    return \"paid\";\n  } catch (err: unknown) {\n    const code = (err as { code?: string } | null)?.code;\n\n    if (code === \"card_declined\") {\n      // PayCo guarantees no charge was created. Clear the stored idempotencyKey\n      // so that once the customer updates their card and presses Pay again,\n      // a fresh idempotencyKey is used instead of replaying this cached decline.\n      await ctx.db.transaction((tx) => {\n        const currentOrder = tx.get<Order>(orderKey) ?? order;\n        if (currentOrder.status !== \"paid\") {\n          tx.set<Order>(orderKey, { ...currentOrder, status: \"declined\" });\n        }\n        const currentState = tx.get<CheckoutState>(stateKey);\n        if (currentState && currentState.idempotencyKey === idempotencyKey && !currentState.chargeId) {\n          tx.delete(stateKey);\n        }\n      });\n      return \"declined\";\n    }\n\n    // For timeout or any unexpected error, PayCo may or may not have processed the charge.\n    // Keep `idempotencyKey` in `stateKey` so the next retry safely replays the same key,\n    // but release `inFlight` so the user/caller can retry immediately.\n    try {\n      await ctx.db.transaction((tx) => {\n        const currentState = tx.get<CheckoutState>(stateKey);\n        if (currentState && currentState.idempotencyKey === idempotencyKey) {\n          tx.set<CheckoutState>(stateKey, {\n            ...currentState,\n            inFlight: false,\n          });\n        }\n      });\n    } catch {\n      // Ignore cleanup failure; the lock TTL will expire before the caller retries.\n    }\n\n    throw err;\n  }\n}\n```",
+        "refusal": null,
+        "reasoning": null,
+        "reasoning_details": [
+          {
+            "type": "reasoning.encrypted",
+            "data": "AY89a19GoUu2fRauKX+9DT/Elb62AlbypjWDyXNW5PFmpEoQfR3/1pYaTlCdvn45rtRhGtQt9nGnn8lFrbu/NOYDKx1QXHXgqT9p1geBSFnDQ1QXgg==",
+            "format": "google-gemini-v1",
+            "index": 0
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 1337,
+    "completion_tokens": 1647,
+    "total_tokens": 2984,
+    "cost": 0.019144,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.019144,
+      "upstream_inference_prompt_cost": 0.002674,
+      "upstream_inference_completions_cost": 0.01647
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

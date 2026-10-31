@@ -1,0 +1,55 @@
+{
+  "id": "gen-1793390777-RjnMTFlV8UiI2jdOnpNs",
+  "object": "chat.completion",
+  "created": 1793390777,
+  "model": "anthropic/claude-opus-5.5",
+  "provider": "Claude Platform on AWS",
+  "system_fingerprint": null,
+  "service_tier": "default",
+  "choices": [
+    {
+      "index": 0,
+      "logprobs": null,
+      "finish_reason": "stop",
+      "native_finish_reason": "end_turn",
+      "message": {
+        "role": "assistant",
+        "content": "```ts\nimport { createHmac, timingSafeEqual } from \"node:crypto\";\n\nconst TOLERANCE_SECONDS = 300;\nconst HEX_SHA256 = /^[0-9a-fA-F]{64}$/;\nconst DIGITS = /^\\d{1,15}$/; // a plain non-negative integer, safely representable\n\n/**\n * Verifies a PayCo webhook and returns the parsed JSON body.\n * Throws an Error if the header is malformed, the timestamp is outside the\n * tolerance window, no v1 signature matches any secret, or the body is not valid JSON.\n */\nexport function verifyWebhook(\n  rawBody: string,\n  signatureHeader: string,\n  secrets: string[],\n  nowSeconds: number\n): unknown {\n  if (typeof rawBody !== \"string\") throw new Error(\"Webhook body must be a string\");\n  if (typeof signatureHeader !== \"string\" || signatureHeader.length === 0) {\n    throw new Error(\"Missing webhook signature header\");\n  }\n  if (!Number.isFinite(nowSeconds)) throw new Error(\"Invalid current time\");\n\n  const usableSecrets = (Array.isArray(secrets) ? secrets : []).filter(\n    (s): s is string => typeof s === \"string\" && s.length > 0\n  );\n  if (usableSecrets.length === 0) throw new Error(\"No webhook secrets configured\");\n\n  // Parse the header.\n  let timestamp: string | undefined;\n  const v1Signatures: Buffer[] = [];\n\n  for (const rawPart of signatureHeader.split(\",\")) {\n    const part = rawPart.trim();\n    if (part.length === 0) continue;\n    const eq = part.indexOf(\"=\");\n    if (eq <= 0) continue; // Ignore malformed or unknown fragments.\n    const key = part.slice(0, eq).trim();\n    const value = part.slice(eq + 1).trim();\n\n    if (key === \"t\") {\n      // Reject multiple timestamps: it would be ambiguous which one was signed.\n      if (timestamp !== undefined) throw new Error(\"Multiple timestamps in signature header\");\n      timestamp = value;\n    } else if (key === \"v1\") {\n      // Skip v1 values that are not well-formed hex SHA-256 digests.\n      if (HEX_SHA256.test(value)) v1Signatures.push(Buffer.from(value, \"hex\"));\n    }\n    // Other schemes (v0, etc.) are ignored.\n  }\n\n  if (timestamp === undefined || !DIGITS.test(timestamp)) {\n    throw new Error(\"Missing or invalid timestamp in signature header\");\n  }\n  if (v1Signatures.length === 0) throw new Error(\"No v1 signature in signature header\");\n\n  const t = Number(timestamp);\n  if (Math.abs(nowSeconds - t) > TOLERANCE_SECONDS) {\n    throw new Error(\"Webhook timestamp outside tolerance window\");\n  }\n\n  // Sign the exact timestamp string from the header.\n  const signedPayload = `${timestamp}.${rawBody}`;\n  let matched = false;\n  for (const secret of usableSecrets) {\n    const expected = createHmac(\"sha256\", secret).update(signedPayload, \"utf8\").digest();\n    for (const candidate of v1Signatures) {\n      // Both buffers are 32 bytes (enforced by the regex), so timingSafeEqual cannot throw.\n      // Do not short-circuit, so timing does not reveal which entry matched.\n      if (candidate.length === expected.length && timingSafeEqual(candidate, expected)) {\n        matched = true;\n      }\n    }\n  }\n  if (!matched) throw new Error(\"Webhook signature verification failed\");\n\n  try {\n    return JSON.parse(rawBody) as unknown;\n  } catch {\n    throw new Error(\"Webhook body is not valid JSON\");\n  }\n}\n```",
+        "refusal": null,
+        "reasoning": "I need to carefully parse the signature header, splitting on commas and extracting the timestamp field, rejecting ambiguous or duplicate values. For comparison, I'll hex-decode the signature to a 32-byte buffer and validate it against a strict hex regex before using a constant-time comparison to avoid timing attacks.\n\nFor the timestamp check, I'll convert it to a number, ensure it's finite, and confirm it falls within a 300-second window of the current time, also validating that the current timestamp itself is finite. I'll let JSON.parse fail naturally on malformed payloads but wrap that in proper error handling, and I should skip or reject empty secret strings rather than silently ignoring them.\n\n",
+        "reasoning_details": [
+          {
+            "type": "reasoning.text",
+            "text": "I need to carefully parse the signature header, splitting on commas and extracting the timestamp field, rejecting ambiguous or duplicate values. For comparison, I'll hex-decode the signature to a 32-byte buffer and validate it against a strict hex regex before using a constant-time comparison to avoid timing attacks.\n\nFor the timestamp check, I'll convert it to a number, ensure it's finite, and confirm it falls within a 300-second window of the current time, also validating that the current timestamp itself is finite. I'll let JSON.parse fail naturally on malformed payloads but wrap that in proper error handling, and I should skip or reject empty secret strings rather than silently ignoring them.\n\n",
+            "format": "anthropic-claude-v1",
+            "index": 0,
+            "signature": "CAQSjAoKEAgTGAI4AUIIdGhpbmtpbmcSDBNYfC+7xJwjJrEpiBoMX2S0xt51BmcFO1hSIjDwhzRCb7qffIRWQ92L2MYx4Fycg9o9eDh43gpUt7WFBve2AjALxml27vn+sffuM1kqqQkM9SGFbGSHZzPFTwn0E26vO7nHMlutPtZCx3+xS515bkmbtlKsNaMMp2OqXClHswH4+Wfv1xc9qcPwSqcaDP7WBSXcMG/DCls09yB753lZuBX6gT14KrQ7+IP8U264LmncUbeDlPGPj5DN3gVT/Ahr5nrh2OGhhPQYhSPI2WQBxkIKFSkD9RBderbxcLPOeOvJaGVWLVf9Ru+9upRJkiU5EGKjPc3Sv6wRC1kc+ukhOapNuuh1WZZoy+yKd4r4dyPV6UZNrfNkgvHjNCBu+CtBYacy6uhMgptYkLHzRODlr+A8VqG49/XqupodMQ/1kKAoNHY7PBnG1rN3KhuF3nm8kTIlW6DEhW3rNJ2OgRev3p8KOY3bAvJHMl7HIH5bHLqzF3JdLqf9Q/kSHoevzAbzTMpw/fHLCA6T+GBjI7ZSsS2vfGJ7aXpHQYNnwU4BJyOLWD6OFDuGZixEn8KRIPRYwA4EqrR02Jlf4+zt4gN3edZQP/Lw1LdnMkKYWBNsxKsktqiTj6xIhhL0Ri+ZiH5mihdTOKG3zH5LUS9OkMO9/BECWewjT/a1wzyCl8vHJ9cSal0lV2XuGgvVVc9WbinAce2X6bPKwbruGMHrxJGiNjkoyvydaattBWHWkm6UL7YjvkWKLfhg9IcgRXccs396yMc+j/QlAG05RuCvGJpu8H5cfm6msqbb971qDaNfrwGdxjsnzAYyCL66Yov/bBtMYAYyz2FHqujQqVxb54kR2NDFjMqeX/VVMpRFBfTcFssFBqB3QlY1pAfM0BBrczHlVlEEOtTgaZ504sZZpv9IN5OKNaf5HtkhnwAocjlDiNS5Cf4fUCoKMkeg7ht7oUXQLmXlkMTJ0It0nmlyJydJL6evqu8Jdt2ValjjnS0Bl7QkfJKBM8b2eK5A4DuZXBfqn8UxArRAHV9y38esrmHy4b2XWFZ2hX5BOLAB9q/vIXQb4CLUXcLR2OignLX1FqKohwxC6cY8VXBRVXCEEElsHvHoo/V6uyK8DW7+JScyM/LxcIzbLTNczESDHkJFAb1iU0nE6DaEBR22u5WhULzOlaPujH9QVIlXETG1upByKtIZcjnHeqfvvA7pH+5ppEsY5yjNnJ0f16vAkGcuqrLMCUQ8rHIXrR20OlLhIqd+Epr+RtCuvf/cg6H1cjk+9EM5FUzrW+EjamGsYYbjauGRR9rqga8S1p0ay4DZL+Wu1VvNp6GP1H33fFVCrvSv78IwI12zYMDEN+Makkv7wZclkVmqN2ouw+7D9CYCk1HqGPikb38G1revpIyGYhepjiGKuOXHptKauP5Mcvq+p8owQW/RBgQCmmTw86Zc0Ai1YK0Q7xQ61lTZBshW2i/L3WtomualLrA/eoIquAnQmHvVofL7pFq//4Or7Fn9p9iRsG7X2uC2YRCCjF4L4rOQiQ5mq05SZB/70ZgI1u6xR+LPac7UffLVkIaKJKr0UFDzh/L+5o7OYeDpYLjBfDCcshCu9J54UVf8z7CZPwNIKl6oEVu5GB2Y6xRy1oTcwsfTLGNSSpCSYpfJjCIQMQ4K2N++pdd8dZDeeYlDUYXIJ+IM0M2Zz52EeKrJaRgB.eyJlbmRwb2ludF9zbHVnIjoiYW50aHJvcGljL2NsYXVkZS1vcHVzLTUuNS0yMDI2MDkyMXxjbGF1ZGUtb24tYXdzIn0"
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 603,
+    "completion_tokens": 1572,
+    "total_tokens": 2175,
+    "cost": 0.033852,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.033852,
+      "upstream_inference_prompt_cost": 0.002412,
+      "upstream_inference_completions_cost": 0.03144
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 257,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

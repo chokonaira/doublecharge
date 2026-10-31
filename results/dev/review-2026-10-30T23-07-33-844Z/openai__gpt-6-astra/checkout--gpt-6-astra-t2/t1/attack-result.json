@@ -1,0 +1,72 @@
+{
+  "status": "confirmed",
+  "how": "as written",
+  "detail": "A answered \"declined\" after the customer had been charged",
+  "trace": [
+    {
+      "actor": "A",
+      "call": "db.transaction",
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:141e81d1-7dd0-4d87-97e8-0b0c0191cf0b\",\"customerId..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
+    },
+    {
+      "actor": "A",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\"} key=checkout:141e81d1-7dd0-4d87-97e8-0b0c0191cf0b",
+      "result": "card_declined"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\"} key=checkout:141e81d1-7dd0-4d87-97e8-0b0c0191cf0b",
+      "result": "replayed card_declined"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:141e81d1-7dd0-4d87-97e8-0b0c0191cf0b\",\"customerId..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..."
+    },
+    {
+      "actor": "C",
+      "call": "db.transaction",
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:f3066873-acee-4209-b887-a43cd1191345\",\"customerId..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
+    },
+    {
+      "actor": "C",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\"} key=checkout:f3066873-acee-4209-b887-a43cd1191345",
+      "result": "processed"
+    },
+    {
+      "actor": "C",
+      "call": "instance killed",
+      "result": "right after the call above, before seeing its result"
+    },
+    {
+      "actor": "A",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "C settle 1",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "C settle 1",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\"} key=checkout:f3066873-acee-4209-b887-a43cd1191345",
+      "result": "replayed original result"
+    },
+    {
+      "actor": "C settle 1",
+      "call": "db.transaction",
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:f3066873-acee-4209-b887-a43cd1191345\",\"customerId..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"paid\"}"
+    },
+    {
+      "actor": "final press settle 1",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    }
+  ]
+}

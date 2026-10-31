@@ -1,0 +1,54 @@
+{
+  "id": "gen-1793390939-bMNQTgGScWQWnU8JvDYx",
+  "object": "chat.completion",
+  "created": 1793390939,
+  "model": "google/gemini-4-argon",
+  "provider": "Google",
+  "system_fingerprint": null,
+  "service_tier": "default",
+  "choices": [
+    {
+      "index": 0,
+      "logprobs": null,
+      "finish_reason": "stop",
+      "native_finish_reason": "STOP",
+      "message": {
+        "role": "assistant",
+        "content": "```ts\nimport { createHmac, timingSafeEqual } from 'node:crypto';\n\nexport function verifyWebhook(\n  rawBody: string,\n  signatureHeader: string,\n  secrets: string[],\n  nowSeconds: number\n): unknown {\n  if (typeof rawBody !== 'string') {\n    throw new Error('Invalid rawBody');\n  }\n  if (typeof signatureHeader !== 'string' || signatureHeader.length === 0) {\n    throw new Error('Missing or invalid signature header');\n  }\n  if (!Array.isArray(secrets) || secrets.length === 0) {\n    throw new Error('No secrets provided');\n  }\n  if (typeof nowSeconds !== 'number' || !Number.isFinite(nowSeconds)) {\n    throw new Error('Invalid nowSeconds');\n  }\n\n  let timestampStr: string | undefined;\n  const v1Signatures: Buffer[] = [];\n\n  const parts = signatureHeader.split(',');\n  for (const part of parts) {\n    const eqIdx = part.indexOf('=');\n    if (eqIdx === -1) continue;\n\n    const key = part.slice(0, eqIdx).trim();\n    const value = part.slice(eqIdx + 1).trim();\n\n    if (key === 't') {\n      if (timestampStr !== undefined) {\n        throw new Error('Multiple timestamps in signature header');\n      }\n      timestampStr = value;\n    } else if (key === 'v1') {\n      // SHA-256 hex digest is 64 hex characters (32 bytes)\n      if (/^[0-9a-fA-F]{64}$/.test(value)) {\n        v1Signatures.push(Buffer.from(value, 'hex'));\n      }\n    }\n    // Other schemes (e.g. v0) are ignored\n  }\n\n  if (!timestampStr || !/^\\d+$/.test(timestampStr)) {\n    throw new Error('Invalid or missing timestamp in signature header');\n  }\n\n  const timestamp = Number(timestampStr);\n  if (!Number.isSafeInteger(timestamp)) {\n    throw new Error('Timestamp is not a safe integer');\n  }\n\n  if (v1Signatures.length === 0) {\n    throw new Error('No valid v1 signatures found in header');\n  }\n\n  // Compute expected signatures for all valid secrets\n  const signedPayload = `${timestampStr}.${rawBody}`;\n  const expectedSignatures: Buffer[] = [];\n\n  for (const secret of secrets) {\n    if (typeof secret === 'string' && secret.length > 0) {\n      const hmac = createHmac('sha256', secret)\n        .update(signedPayload, 'utf8')\n        .digest();\n      expectedSignatures.push(hmac);\n    }\n  }\n\n  if (expectedSignatures.length === 0) {\n    throw new Error('No valid non-empty secrets provided');\n  }\n\n  // Constant-time comparison across all pairs of (expected, provided)\n  let matched = false;\n  for (const expected of expectedSignatures) {\n    for (const provided of v1Signatures) {\n      if (expected.length === provided.length && timingSafeEqual(expected, provided)) {\n        matched = true;\n      }\n    }\n  }\n\n  if (!matched) {\n    throw new Error('Signature verification failed');\n  }\n\n  // Check timestamp tolerance (within 300 seconds in either direction)\n  if (Math.abs(nowSeconds - timestamp) > 300) {\n    throw new Error('Webhook timestamp outside of tolerance window');\n  }\n\n  return JSON.parse(rawBody);\n}\n```",
+        "refusal": null,
+        "reasoning": null,
+        "reasoning_details": [
+          {
+            "type": "reasoning.encrypted",
+            "data": "AY89a19b08TSbA9g50nXlv6pYH9wr9XGVQJo2AsTGomB/dtKrLaZXQeBXdvT0+97okOLKB0ZeQhiJe1w2Xk3UUhZ1uzoPkN2Vo4gy1inT5BrLHk7Xg==",
+            "format": "google-gemini-v1",
+            "index": 0
+          }
+        ]
+      }
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 460,
+    "completion_tokens": 843,
+    "total_tokens": 1303,
+    "cost": 0.00935,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.00935,
+      "upstream_inference_prompt_cost": 0.00092,
+      "upstream_inference_completions_cost": 0.00843
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

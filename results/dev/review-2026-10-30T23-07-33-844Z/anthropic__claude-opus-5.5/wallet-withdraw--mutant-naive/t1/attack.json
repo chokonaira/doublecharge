@@ -1,0 +1,21 @@
+{
+  "summary": "Concurrent withdrawals both read balance 10000 and overwrite the wallet with 7000, so 6000 is paid out while only 3000 is debited.",
+  "steps": [
+    [
+      {
+        "id": "A",
+        "action": "withdraw",
+        "requestId": "r1",
+        "amount": 3000,
+        "pause": {
+          "when": "after",
+          "call": "db.get",
+          "occurrence": 1,
+          "meanwhile": [
+            [{ "id": "B", "action": "withdraw", "requestId": "r2", "amount": 3000 }]
+          ]
+        }
+      }
+    ]
+  ]
+}

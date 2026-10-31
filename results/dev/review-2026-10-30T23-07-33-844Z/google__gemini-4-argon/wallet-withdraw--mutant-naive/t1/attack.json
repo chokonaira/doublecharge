@@ -1,0 +1,28 @@
+{
+  "summary": "Two concurrent withdrawals read the same initial balance, both pay out, and overwrite each other's balance deduction.",
+  "steps": [
+    [
+      {
+        "id": "A",
+        "action": "withdraw",
+        "requestId": "r1",
+        "amount": 6000,
+        "pause": {
+          "when": "after",
+          "call": "db.get",
+          "occurrence": 1,
+          "meanwhile": [
+            [
+              {
+                "id": "B",
+                "action": "withdraw",
+                "requestId": "r2",
+                "amount": 6000
+              }
+            ]
+          ]
+        }
+      }
+    ]
+  ]
+}
