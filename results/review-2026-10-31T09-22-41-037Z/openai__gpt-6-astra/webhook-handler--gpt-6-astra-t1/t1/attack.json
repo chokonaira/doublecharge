@@ -1,0 +1,22 @@
+{
+  "summary": "Shipping timeouts exhaust the initial delivery and five settling rounds, leaving a paid, non-refunded order unshipped.",
+  "faults": {
+    "ship": [
+      "timeout_before",
+      "timeout_before",
+      "timeout_before",
+      "timeout_before",
+      "timeout_before",
+      "timeout_before"
+    ]
+  },
+  "steps": [
+    [
+      {
+        "id": "S",
+        "action": "deliver",
+        "event": "charge.succeeded"
+      }
+    ]
+  ]
+}

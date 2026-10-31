@@ -1,0 +1,21 @@
+{
+  "summary": "A succeeded delivery reads the charge before a full refund, then its transaction sees the order already marked refunded by the refund delivery, yet it still ships because the ship decision uses the stale charge snapshot.",
+  "steps": [
+    [
+      {
+        "id": "S",
+        "action": "deliver",
+        "event": "charge.succeeded",
+        "pause": {
+          "when": "after",
+          "call": "payco.getCharge",
+          "occurrence": 1,
+          "meanwhile": [
+            [{ "id": "X", "action": "refund", "total": 1000 }],
+            [{ "id": "R", "action": "deliver", "event": "charge.refunded", "refundedTotal": 1000 }]
+          ]
+        }
+      }
+    ]
+  ]
+}

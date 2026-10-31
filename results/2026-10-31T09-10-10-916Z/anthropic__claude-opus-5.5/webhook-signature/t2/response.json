@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "```ts\nimport { createHmac, timingSafeEqual } from \"node:crypto\";\n\nconst TOLERANCE_SECONDS = 300;\nconst HEX_SHA256 = /^[0-9a-fA-F]{64}$/;\nconst DIGITS = /^\\d{1,15}$/;\n\n/**\n * Verifies a PayCo webhook signature and returns the parsed JSON body.\n * Throws if the header is malformed, the timestamp is outside the tolerance\n * window, no v1 signature matches any active secret, or the body is not valid JSON.\n */\nexport function verifyWebhook(\n  rawBody: string,\n  signatureHeader: string,\n  secrets: string[],\n  nowSeconds: number\n): unknown {\n  if (typeof rawBody !== \"string\") throw new Error(\"Webhook body must be a raw string\");\n  if (typeof signatureHeader !== \"string\" || signatureHeader.length === 0) {\n    throw new Error(\"Missing webhook signature header\");\n  }\n  if (typeof nowSeconds !== \"number\" || !Number.isFinite(nowSeconds)) {\n    throw new Error(\"Invalid current time\");\n  }\n  const activeSecrets = (Array.isArray(secrets) ? secrets : []).filter(\n    (s): s is string => typeof s === \"string\" && s.length > 0\n  );\n  if (activeSecrets.length === 0) throw new Error(\"No webhook secrets configured\");\n\n  // --- Parse header ---\n  let timestamp: string | undefined;\n  const v1Signatures: Buffer[] = [];\n\n  for (const rawPart of signatureHeader.split(\",\")) {\n    const part = rawPart.trim();\n    if (part.length === 0) continue;\n    const eq = part.indexOf(\"=\");\n    if (eq <= 0) continue; // malformed element; ignore\n    const key = part.slice(0, eq).trim();\n    const value = part.slice(eq + 1).trim();\n\n    if (key === \"t\") {\n      // Reject ambiguous headers carrying more than one timestamp.\n      if (timestamp !== undefined) throw new Error(\"Multiple timestamps in signature header\");\n      timestamp = value;\n    } else if (key === \"v1\") {\n      // Only well-formed SHA-256 hex digests are considered; others can never match.\n      if (HEX_SHA256.test(value)) v1Signatures.push(Buffer.from(value, \"hex\"));\n    }\n    // Other schemes (e.g. v0) are ignored.\n  }\n\n  if (timestamp === undefined || !DIGITS.test(timestamp)) {\n    throw new Error(\"Missing or invalid timestamp in signature header\");\n  }\n  if (v1Signatures.length === 0) throw new Error(\"No v1 signature in header\");\n\n  // --- Timestamp tolerance (both directions) ---\n  const t = Number(timestamp);\n  if (Math.abs(nowSeconds - t) > TOLERANCE_SECONDS) {\n    throw new Error(\"Webhook timestamp outside tolerance window\");\n  }\n\n  // --- Signature check (constant-time comparisons) ---\n  // Sign exactly the timestamp string as received, with the untouched raw body.\n  const signedPayload = `${timestamp}.${rawBody}`;\n  let matched = false;\n  for (const secret of activeSecrets) {\n    const expected = createHmac(\"sha256\", secret).update(signedPayload, \"utf8\").digest();\n    for (const sig of v1Signatures) {\n      // Lengths are guaranteed equal (32 bytes) by the hex regex above.\n      if (sig.length === expected.length && timingSafeEqual(sig, expected)) {\n        matched = true; // keep looping to avoid leaking which entry matched\n      }\n    }\n  }\n  if (!matched) throw new Error(\"Webhook signature verification failed\");\n\n  // --- Parse body only after authentication ---\n  try {\n    return JSON.parse(rawBody) as unknown;\n  } catch {\n    throw new Error(\"Webhook body is not valid JSON\");\n  }\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "anthropic/claude-opus-5.5",
+  "provider": "Claude Platform on AWS",
+  "usage": {
+    "prompt_tokens": 603,
+    "completion_tokens": 1615,
+    "total_tokens": 2218,
+    "cost": 0.034712,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.034712,
+      "upstream_inference_prompt_cost": 0.002412,
+      "upstream_inference_completions_cost": 0.0323
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 257,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

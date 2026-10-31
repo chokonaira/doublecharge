@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "```ts\nimport { createHmac, timingSafeEqual } from \"node:crypto\";\nimport { Buffer } from \"node:buffer\";\n\nexport function verifyWebhook(\n  rawBody: string,\n  signatureHeader: string,\n  secrets: string[],\n  nowSeconds: number,\n): unknown {\n  const invalid = (): Error => new Error(\"Invalid webhook signature\");\n\n  let timestampText: string | undefined;\n  const signatures: Buffer[] = [];\n\n  for (const part of signatureHeader.split(\",\")) {\n    const separator = part.indexOf(\"=\");\n    if (separator === -1) continue;\n\n    const scheme = part.slice(0, separator).trim();\n    const value = part.slice(separator + 1).trim();\n\n    if (scheme === \"t\") {\n      // Reject ambiguous headers rather than choosing between timestamps.\n      if (timestampText !== undefined) throw invalid();\n      timestampText = value;\n    } else if (scheme === \"v1\" && /^[0-9a-fA-F]{64}$/.test(value)) {\n      // Validate before decoding: Buffer.from otherwise tolerates invalid hex.\n      signatures.push(Buffer.from(value, \"hex\"));\n    }\n    // Unknown schemes and malformed signature candidates are ignored.\n  }\n\n  if (timestampText === undefined || !/^-?\\d+$/.test(timestampText)) {\n    throw invalid();\n  }\n\n  const timestamp = Number(timestampText);\n  if (\n    !Number.isSafeInteger(timestamp) ||\n    !Number.isFinite(nowSeconds) ||\n    Math.abs(timestamp - nowSeconds) > 300 ||\n    signatures.length === 0 ||\n    secrets.length === 0\n  ) {\n    throw invalid();\n  }\n\n  // Preserve the timestamp's original representation and the exact raw body.\n  const signedPayload = `${timestampText}.${rawBody}`;\n  let matched = false;\n\n  for (const secret of secrets) {\n    const expected = createHmac(\"sha256\", secret)\n      .update(signedPayload, \"utf8\")\n      .digest();\n\n    for (const signature of signatures) {\n      // Both buffers are exactly 32 bytes. Do not stop at the first match.\n      if (timingSafeEqual(expected, signature)) matched = true;\n    }\n  }\n\n  if (!matched) throw invalid();\n\n  return JSON.parse(rawBody) as unknown;\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "openai/gpt-6-astra",
+  "provider": "OpenAI",
+  "usage": {
+    "prompt_tokens": 398,
+    "completion_tokens": 758,
+    "total_tokens": 1156,
+    "cost": 0.04188,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.04188,
+      "upstream_inference_prompt_cost": 0.00398,
+      "upstream_inference_completions_cost": 0.0379
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 275,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

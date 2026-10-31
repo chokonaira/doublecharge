@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "The module works in integer minor units with BigInt. It needs each currency's ISO 4217 exponent and cannot import packages, so it embeds a table of ISO 4217 exponents.\n\n- **Only the non-2-digit currencies are listed:** every other code defaults to 2, which may be wrong for a currency added to ISO 4217 later.\n- **Not using Intl's number of decimals:** Intl does not always match ISO 4217. For example, it shows 0 decimals for IQD where ISO 4217 says 3.\n\nThe task doesn't define a few cases, so the module throws instead of guessing:\n\n- an unrecognised or \"N.A.\" currency (such as XAU)\n- a badly formed amount, or one with too many decimal places\n- a discount larger than the order total\n- a result too large to return safely as a JavaScript number\n\n```ts\n// ISO 4217 minor units (exponents) for currencies whose exponent is not 2.\n// Any other well-formed 3-letter code is assumed to have exponent 2.\n// Limitation: no packages may be imported, so this table is embedded. A\n// currency added to ISO 4217 later with a non-2 exponent will be wrong\n// until the table is updated. Intl is not used: its CLDR digit data\n// differs from ISO 4217 for some codes (e.g. IQD).\nconst NON_DEFAULT_EXPONENTS: Record<string, number> = {\n  // exponent 0\n  BIF: 0, CLP: 0, DJF: 0, GNF: 0, ISK: 0, JPY: 0, KMF: 0, KRW: 0, PYG: 0,\n  RWF: 0, UGX: 0, UYI: 0, VND: 0, VUV: 0, XAF: 0, XOF: 0, XPF: 0,\n  // exponent 3\n  BHD: 3, IQD: 3, JOD: 3, KWD: 3, LYD: 3, OMR: 3, TND: 3,\n  // exponent 4\n  CLF: 4, UYW: 4,\n};\n\n// ISO 4217 codes with no minor unit defined (\"N.A.\"): splitting into minor units is meaningless.\nconst NOT_APPLICABLE = new Set([\n  \"XAU\", \"XAG\", \"XPT\", \"XPD\", \"XDR\", \"XSU\", \"XUA\", \"XBA\", \"XBB\", \"XBC\", \"XBD\", \"XTS\", \"XXX\",\n]);\n\nfunction minorUnits(currency: string): number {\n  if (typeof currency !== \"string\" || !/^[A-Z]{3}$/.test(currency)) {\n    throw new Error(`Invalid ISO 4217 currency code: ${String(currency)}`);\n  }\n  if (NOT_APPLICABLE.has(currency)) {\n    throw new Error(`Currency ${currency} has no ISO 4217 minor unit`);\n  }\n  return Object.prototype.hasOwnProperty.call(NON_DEFAULT_EXPONENTS, currency)\n    ? NON_DEFAULT_EXPONENTS[currency]\n    : 2;\n}\n\nfunction toMinor(amount: string, exp: number): bigint {\n  if (typeof amount !== \"string\") throw new Error(`Amount must be a string`);\n  const m = /^(\\d+)(?:\\.(\\d+))?$/.exec(amount.trim());\n  if (!m) throw new Error(`Invalid amount: ${amount}`);\n  const frac = m[2] ?? \"\";\n  if (frac.length > exp) {\n    throw new Error(`Amount ${amount} has more decimal places than the currency allows (${exp})`);\n  }\n  return BigInt(m[1] + frac.padEnd(exp, \"0\"));\n}\n\nfunction toSafeNumber(v: bigint): number {\n  const n = Number(v);\n  if (!Number.isSafeInteger(n)) throw new Error(`Amount ${v} exceeds safe integer range`);\n  return n;\n}\n\nexport function splitOrder(order: {\n  currency: string;\n  lines: { sellerId: string; amount: string }[];\n  discount: string;\n}): { platformFee: number; payouts: Record<string, number> } {\n  const exp = minorUnits(order.currency);\n  const lines = order.lines ?? [];\n  const amounts = lines.map((l) => toMinor(l.amount, exp));\n  const discount = toMinor(order.discount, exp);\n  const total = amounts.reduce((a, b) => a + b, 0n);\n\n  if (discount > total) throw new Error(\"Discount exceeds order total\");\n\n  // Largest remainder allocation of the discount.\n  const alloc: bigint[] = amounts.map(() => 0n);\n  if (discount > 0n) {\n    const rems: { i: number; r: bigint }[] = [];\n    let allocated = 0n;\n    amounts.forEach((a, i) => {\n      const num = discount * a;\n      alloc[i] = num / total;\n      allocated += alloc[i];\n      rems.push({ i, r: num % total });\n    });\n    // Sort by remainder descending; ties go to the earlier line.\n    rems.sort((x, y) => (x.r === y.r ? x.i - y.i : x.r > y.r ? -1 : 1));\n    let left = discount - allocated; // always < number of lines\n    for (let k = 0; left > 0n; k++, left--) alloc[rems[k].i] += 1n;\n  }\n\n  let platformFee = 0n;\n  const payouts = new Map<string, bigint>();\n  lines.forEach((line, i) => {\n    const net = amounts[i] - alloc[i];\n    // 2.9% rounded half up (net is non-negative).\n    const fee = (net * 29n + 500n) / 1000n;\n    platformFee += fee;\n    payouts.set(line.sellerId, (payouts.get(line.sellerId) ?? 0n) + (net - fee));\n  });\n\n  return {\n    platformFee: toSafeNumber(platformFee),\n    // Object.fromEntries defines own data properties, so ids like \"__proto__\" are safe.\n    payouts: Object.fromEntries([...payouts].map(([k, v]) => [k, toSafeNumber(v)])),\n  };\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "anthropic/claude-opus-5.5",
+  "provider": "Claude Platform on AWS",
+  "usage": {
+    "prompt_tokens": 673,
+    "completion_tokens": 2867,
+    "total_tokens": 3540,
+    "cost": 0.060032,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.060032,
+      "upstream_inference_prompt_cost": 0.002692,
+      "upstream_inference_completions_cost": 0.05734
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 798,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

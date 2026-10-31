@@ -1,0 +1,26 @@
+{
+  "summary": "Shipping timeouts exhaust all delivery rounds, leaving an unrefunded paid order without a shipment.",
+  "faults": {
+    "ship": [
+      "timeout_before",
+      "timeout_before",
+      "timeout_before",
+      "timeout_before",
+      "timeout_before",
+      "timeout_before",
+      "timeout_before",
+      "timeout_before",
+      "timeout_before",
+      "timeout_before"
+    ]
+  },
+  "steps": [
+    [
+      {
+        "id": "S",
+        "action": "deliver",
+        "event": "charge.succeeded"
+      }
+    ]
+  ]
+}

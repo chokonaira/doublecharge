@@ -1,0 +1,22 @@
+{
+  "status": "confirmed",
+  "how": "as written",
+  "detail": "the seller's balance is 0; with 0 refunded it should be 1000; the order is \"pending\" although only 0 of 1000 is refunded; the order is not fully refunded but never shipped",
+  "trace": [
+    {
+      "actor": "S",
+      "call": "db.insertIfAbsent event:evt_succeeded true",
+      "result": "stored"
+    },
+    {
+      "actor": "S",
+      "call": "instance killed",
+      "result": "right after the call above, before seeing its result"
+    },
+    {
+      "actor": "S retry 1",
+      "call": "db.insertIfAbsent event:evt_succeeded true",
+      "result": "already present"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "```ts\n// ISO 4217 minor-unit exceptions. Other currencies with a defined minor unit\n// use two decimal places. Keep these lists updated when ISO changes its data.\n// Intl.NumberFormat defaults are not a substitute: CLDR formatting precision\n// can differ from the ISO accounting minor unit.\nconst ZERO_DECIMAL_CURRENCIES = new Set(\n  \"BIF CLP DJF GNF ISK JPY KMF KRW PYG RWF UGX UYI VND VUV XAF XOF XPF\".split(\" \"),\n);\nconst THREE_DECIMAL_CURRENCIES = new Set(\n  \"BHD IQD JOD KWD LYD OMR TND\".split(\" \"),\n);\nconst FOUR_DECIMAL_CURRENCIES = new Set([\"CLF\", \"UYW\"]);\nconst NO_MINOR_UNIT_CODES = new Set(\n  \"XAG XAU XBA XBB XBC XBD XDR XPD XPT XSU XTS XUA XXX\".split(\" \"),\n);\n\nfunction minorUnitDigits(currency: string): number {\n  if (!/^[A-Z]{3}$/.test(currency)) {\n    throw new RangeError(\"Currency must be an uppercase ISO 4217 code\");\n  }\n\n  // These ISO codes have minor unit \"N.A.\", so the requested integer-minor-unit\n  // calculation cannot be defined without an additional business convention.\n  if (NO_MINOR_UNIT_CODES.has(currency)) {\n    throw new RangeError(`${currency} has no defined ISO 4217 minor unit`);\n  }\n\n  if (ZERO_DECIMAL_CURRENCIES.has(currency)) return 0;\n  if (THREE_DECIMAL_CURRENCIES.has(currency)) return 3;\n  if (FOUR_DECIMAL_CURRENCIES.has(currency)) return 4;\n  return 2; // The caller guarantees that currency is an ISO 4217 currency.\n}\n\nfunction parseAmount(value: string, digits: number, label: string): bigint {\n  if (typeof value !== \"string\" || !/^[0-9]+(?:\\.[0-9]+)?$/.test(value)) {\n    throw new RangeError(`${label} must be a nonnegative decimal string`);\n  }\n\n  const [whole, fraction = \"\"] = value.split(\".\");\n  if (fraction.length > digits) {\n    throw new RangeError(`${label} exceeds the currency's decimal precision`);\n  }\n\n  const scale = 10n ** BigInt(digits);\n  return (\n    BigInt(whole) * scale +\n    (fraction.length === 0 ? 0n : BigInt(fraction.padEnd(digits, \"0\")))\n  );\n}\n\nfunction toSafeNumber(value: bigint, label: string): number {\n  // The required number return type cannot represent arbitrary integer amounts\n  // exactly. Reject unsafe results rather than silently losing minor units.\n  if (value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER)) {\n    throw new RangeError(`${label} is outside the safe integer range`);\n  }\n  return Number(value);\n}\n\nexport function splitOrder(order: {\n  currency: string;\n  lines: { sellerId: string; amount: string }[];\n  discount: string;\n}): { platformFee: number; payouts: Record<string, number> } {\n  const digits = minorUnitDigits(order.currency);\n  const amounts = order.lines.map((line, index) =>\n    parseAmount(line.amount, digits, `lines[${index}].amount`),\n  );\n  const discount = parseAmount(order.discount, digits, \"discount\");\n  const total = amounts.reduce((sum, amount) => sum + amount, 0n);\n\n  if (discount > total) {\n    throw new RangeError(\"Discount cannot exceed the order total\");\n  }\n\n  const allocations = amounts.map(() => 0n);\n\n  if (discount > 0n) {\n    // A positive discount implies a positive total after validation.\n    let allocated = 0n;\n    const ranked = amounts.map((amount, index) => {\n      const numerator = discount * amount;\n      const floor = numerator / total;\n      allocations[index] = floor;\n      allocated += floor;\n      return { index, remainder: numerator % total };\n    });\n\n    ranked.sort((a, b) => {\n      if (a.remainder > b.remainder) return -1;\n      if (a.remainder < b.remainder) return 1;\n      return a.index - b.index;\n    });\n\n    // The sum of fractional remainders is an integer smaller than line count.\n    let remaining = discount - allocated;\n    for (let i = 0; remaining > 0n; i++, remaining--) {\n      allocations[ranked[i].index] += 1n;\n    }\n  }\n\n  let platformFee = 0n;\n  const sellerPayouts = new Map<string, bigint>();\n\n  for (let i = 0; i < order.lines.length; i++) {\n    const net = amounts[i] - allocations[i];\n    // 2.9% = 29/1000; adding half the denominator gives half-up rounding.\n    const fee = (net * 29n + 500n) / 1000n;\n    platformFee += fee;\n\n    const sellerId = order.lines[i].sellerId;\n    sellerPayouts.set(\n      sellerId,\n      (sellerPayouts.get(sellerId) ?? 0n) + net - fee,\n    );\n  }\n\n  // fromEntries creates own data properties safely even for \"__proto__\".\n  const payouts: Record<string, number> = Object.fromEntries(\n    Array.from(sellerPayouts, ([sellerId, amount]) => [\n      sellerId,\n      toSafeNumber(amount, `Payout for ${sellerId}`),\n    ]),\n  );\n\n  return {\n    platformFee: toSafeNumber(platformFee, \"Platform fee\"),\n    payouts,\n  };\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "openai/gpt-6-astra",
+  "provider": "OpenAI",
+  "usage": {
+    "prompt_tokens": 459,
+    "completion_tokens": 2399,
+    "total_tokens": 2858,
+    "cost": 0.12454,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.12454,
+      "upstream_inference_prompt_cost": 0.00459,
+      "upstream_inference_completions_cost": 0.11995
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 1173,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

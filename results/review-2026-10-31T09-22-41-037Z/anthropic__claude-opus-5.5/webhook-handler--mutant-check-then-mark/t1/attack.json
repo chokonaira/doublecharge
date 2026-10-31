@@ -1,0 +1,18 @@
+{
+  "summary": "A duplicate charge.succeeded delivery arrives before the first one writes its event marker, so the order ships twice and the balance is credited twice.",
+  "steps": [
+    [
+      {
+        "id": "S1",
+        "action": "deliver",
+        "event": "charge.succeeded",
+        "pause": {
+          "when": "before",
+          "call": "db.set",
+          "occurrence": 1,
+          "meanwhile": [[{ "id": "S2", "action": "deliver", "event": "charge.succeeded" }]]
+        }
+      }
+    ]
+  ]
+}

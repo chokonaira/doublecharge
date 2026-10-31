@@ -1,0 +1,3112 @@
+{
+  "status": "confirmed",
+  "how": "as written",
+  "detail": "the customer was charged 5198 for an order of 2599; after settling the customer was charged 5198 and the order is \"paid\"",
+  "trace": [
+    {
+      "actor": "A",
+      "call": "db.transaction",
+      "result": "committed checkout_lock:o1={\"id\":\"772a276f-875c-4512-ad17-77b5993943d7\",\"expiresAt\":1793491230000}"
+    },
+    {
+      "actor": "A",
+      "call": "db.transaction",
+      "result": "committed checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:ff1482be-d0d0-47f3-aed7-07a7f25fb33f\",\"status\"..."
+    },
+    {
+      "actor": "A",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:ff1482be-d0d0-47f3-aed7-07a7f25fb33f",
+      "result": "card_declined"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed checkout_lock:o1={\"id\":\"d0ed71ad-41a0-4bc6-a9d5-7f88f064a8cc\",\"expiresAt\":1793491260000}"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:ff1482be-d0d0-47f3-aed7-07a7f25fb33f",
+      "result": "replayed card_declined"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..., checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:ff1482be-d0d0-47f3-aed7-07a7f25fb33f\",\"status\"..."
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed checkout_lock:o1=deleted"
+    },
+    {
+      "actor": "C",
+      "call": "db.transaction",
+      "result": "committed checkout_lock:o1={\"id\":\"1145775c-95eb-48c0-9187-55d527aaa49c\",\"expiresAt\":1793491260000}"
+    },
+    {
+      "actor": "C",
+      "call": "db.transaction",
+      "result": "committed checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:6bd1dfa5-390a-48e1-a6e0-3d7a8b766f29\",\"status\"..."
+    },
+    {
+      "actor": "C",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:6bd1dfa5-390a-48e1-a6e0-3d7a8b766f29",
+      "result": "processed"
+    },
+    {
+      "actor": "C",
+      "call": "instance killed",
+      "result": "right after the call above, before seeing its result"
+    },
+    {
+      "actor": "A",
+      "call": "db.transaction",
+      "result": "committed order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..., checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:ff1482be-d0d0-47f3-aed7-07a7f25fb33f\",\"status\"..."
+    },
+    {
+      "actor": "A",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed checkout_lock:o1={\"id\":\"03f9ba2d-9ba9-4637-b9ef-d4d362b28f0d\",\"expiresAt\":1793491290000}"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:a2374606-e7aa-457c-968a-2d0ba08bb9da\",\"status\"..."
+    },
+    {
+      "actor": "D",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:a2374606-e7aa-457c-968a-2d0ba08bb9da",
+      "result": "processed"
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"paid\"}, checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:a2374606-e7aa-457c-968a-2d0ba08bb9da\",\"status\"..."
+    },
+    {
+      "actor": "D",
+      "call": "db.transaction",
+      "result": "committed checkout_lock:o1=deleted"
+    },
+    {
+      "actor": "C settle 1",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "final press settle 1",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    }
+  ]
+}

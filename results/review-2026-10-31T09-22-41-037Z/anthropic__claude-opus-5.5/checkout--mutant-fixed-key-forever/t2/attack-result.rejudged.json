@@ -1,0 +1,37 @@
+{
+  "status": "confirmed",
+  "how": "as written",
+  "detail": "the final press (final press settle 1) answered \"declined\" although no card was declined that the customer had not already been told about; with a working card, a final press of Pay answered \"declined\"; after settling the customer was charged 0 and the order is \"declined\"",
+  "trace": [
+    {
+      "actor": "A",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
+    },
+    {
+      "actor": "A",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\"} key=order-o1",
+      "result": "card_declined"
+    },
+    {
+      "actor": "A",
+      "call": "db.update order:o1",
+      "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend... -> {\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..."
+    },
+    {
+      "actor": "final press settle 1",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..."
+    },
+    {
+      "actor": "final press settle 1",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\"} key=order-o1",
+      "result": "replayed card_declined"
+    },
+    {
+      "actor": "final press settle 1",
+      "call": "db.update order:o1",
+      "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl... -> {\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..."
+    }
+  ]
+}

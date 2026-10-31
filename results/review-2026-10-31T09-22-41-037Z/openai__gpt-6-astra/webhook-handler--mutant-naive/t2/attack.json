@@ -1,0 +1,16 @@
+{
+  "summary": "A lost Shipping response causes a webhook retry to credit the seller twice and create two shipments.",
+  "faults": {
+    "ship": ["timeout_after", "ok"]
+  },
+  "steps": [
+    [
+      {
+        "id": "S",
+        "action": "deliver",
+        "event": "charge.succeeded",
+        "retries": 1
+      }
+    ]
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "The withdrawal is driven by a state record per `requestId`, so any instance can pick up where a crashed one stopped.\n\n1. **Reserve.** One `Db` transaction does the first step. If the wallet holds less than the amount, it records `insufficient_funds` and changes nothing else. Otherwise it takes the amount off the wallet and records the withdrawal as `reserved`.\n2. **Pay out.** While the record is `reserved`, the code calls `createPayout` with the idempotency key `withdraw:<requestId>`. It always uses the amount and user stored in the record. Running this step any number of times, even on several instances at once, sends at most one payout.\n3. **Finalise.** A second transaction checks the record is still `reserved` and only then marks it final:\n   - On success it marks the record `paid_out`.\n   - If the bank rejects the payout, it puts the money back in the wallet and marks the record `rejected`.\n\n   Because of that check, the money can be returned only once.\n4. **Timeouts and crashes.** A timeout is retried a few times with the same key, which PayCo says is safe; if it keeps timing out, the error is thrown. If the instance dies at any point, the record stays `reserved`. The app or the reconciliation job then repeats the request, and the payout is completed or rejected.\n\nMoney is never created or lost: every cent is either in the wallet, held by a `reserved` record waiting to finish, or paid out exactly once.\n\n```ts\ntype WithdrawResult = \"paid_out\" | \"insufficient_funds\" | \"rejected\";\n\ninterface WithdrawalRecord {\n  state: \"reserved\" | WithdrawResult;\n  userId: string;\n  amount: number;\n}\n\nconst walletKey = (userId: string) => `wallet:${userId}`;\nconst recordKey = (requestId: string) => `withdrawal:${requestId}`;\n\nexport async function withdraw(\n  req: { requestId: string; userId: string; amount: number },\n  ctx: Ctx,\n): Promise<WithdrawResult> {\n  const { db, payco } = ctx;\n  const rKey = recordKey(req.requestId);\n\n  // Step 1: atomically either reuse the existing record, record insufficient\n  // funds, or reserve (debit) the funds together with creating the record.\n  // Reserving first means concurrent withdrawals can never overdraw the wallet,\n  // and a crash after this point leaves a durable \"reserved\" record that the\n  // retry/reconciliation will drive to completion.\n  const record = await db.transaction<WithdrawalRecord>((tx) => {\n    const existing = tx.get<WithdrawalRecord>(rKey);\n    if (existing) return existing;\n\n    const balance = tx.get<number>(walletKey(req.userId)) ?? 0;\n    if (balance < req.amount) {\n      const rec: WithdrawalRecord = { state: \"insufficient_funds\", userId: req.userId, amount: req.amount };\n      tx.set(rKey, rec);\n      return rec;\n    }\n    tx.set(walletKey(req.userId), balance - req.amount);\n    const rec: WithdrawalRecord = { state: \"reserved\", userId: req.userId, amount: req.amount };\n    tx.set(rKey, rec);\n    return rec;\n  });\n\n  if (record.state !== \"reserved\") return record.state;\n\n  // Step 2: pay out. Parameters come from the stored record so the idempotency\n  // key is always reused with identical parameters; PayCo guarantees at most\n  // one payout for this key no matter how many times / instances call this.\n  const idempotencyKey = `withdraw:${req.requestId}`;\n  let outcome: \"paid_out\" | \"rejected\";\n  let attempt = 0;\n  for (;;) {\n    try {\n      await payco.createPayout({\n        amount: record.amount,\n        currency: \"EUR\",\n        destination: record.userId,\n        idempotencyKey,\n      });\n      outcome = \"paid_out\";\n      break;\n    } catch (err: any) {\n      const code = err?.code;\n      if (code === \"payout_rejected\") {\n        outcome = \"rejected\";\n        break;\n      }\n      if (code === \"timeout\" && attempt < 2) {\n        // Retrying a timed-out request with the same key is always safe.\n        attempt++;\n        continue;\n      }\n      // Unknown outcome (persistent timeout or other error): leave the record\n      // \"reserved\" (funds held, not lost) and fail; the caller/reconciliation\n      // retries with the same requestId and we resume here.\n      throw err;\n    }\n  }\n\n  // Step 3: finalize atomically. Only a \"reserved\" record can transition, so a\n  // concurrent duplicate cannot refund twice.\n  return db.transaction<WithdrawResult>((tx) => {\n    const cur = tx.get<WithdrawalRecord>(rKey);\n    if (!cur) {\n      // Should not happen (records are never deleted); be safe and do nothing.\n      return outcome;\n    }\n    if (cur.state !== \"reserved\") return cur.state;\n    if (outcome === \"rejected\") {\n      const balance = tx.get<number>(walletKey(cur.userId)) ?? 0;\n      tx.set(walletKey(cur.userId), balance + cur.amount);\n    }\n    tx.set(rKey, { ...cur, state: outcome });\n    return outcome;\n  });\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "anthropic/claude-opus-5.5",
+  "provider": "Claude Platform on AWS",
+  "usage": {
+    "prompt_tokens": 2006,
+    "completion_tokens": 2562,
+    "total_tokens": 4568,
+    "cost": 0.059264,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.059264,
+      "upstream_inference_prompt_cost": 0.008024,
+      "upstream_inference_completions_cost": 0.05124
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 781,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

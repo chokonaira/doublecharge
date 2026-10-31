@@ -1,0 +1,11 @@
+{
+  "model": "openai/gpt-6-astra",
+  "sample": "checkout--gpt-6-astra-t2",
+  "task": "checkout",
+  "origin": "model",
+  "knownBug": false,
+  "trial": 1,
+  "cost": 0.0771675,
+  "ms": 24992,
+  "verdict": "SAFE"
+}

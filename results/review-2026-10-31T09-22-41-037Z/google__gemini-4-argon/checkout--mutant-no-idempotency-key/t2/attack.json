@@ -1,0 +1,11 @@
+{
+  "summary": "A timeout_after on createCharge followed by a retry charges the customer twice because no idempotencyKey is used.",
+  "faults": {
+    "createCharge": ["timeout_after", "ok"]
+  },
+  "steps": [
+    [
+      { "id": "A", "action": "pay", "retries": 1 }
+    ]
+  ]
+}

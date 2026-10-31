@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "```ts\nexport interface OrderLine {\n  sellerId: string;\n  amount: string;\n}\n\nexport interface Order {\n  currency: string; // ISO 4217 code\n  lines: OrderLine[];\n  discount: string;\n}\n\nexport interface SplitResult {\n  platformFee: number;\n  payouts: Record<string, number>;\n}\n\n/**\n * ISO 4217 currencies with non-2 minor unit exponents.\n * Standard ISO 4217 defaults to 2 decimal places unless listed here.\n * We also fall back to `Intl.NumberFormat` where supported by the runtime.\n */\nconst CURRENCY_EXPONENT_OVERRIDES: Record<string, number> = {\n  // 0 decimal places\n  BIF: 0,\n  CLP: 0,\n  DJF: 0,\n  GNF: 0,\n  ISK: 0,\n  JPY: 0,\n  KMF: 0,\n  KRW: 0,\n  PYG: 0,\n  RWF: 0,\n  UGX: 0,\n  UYI: 0,\n  VND: 0,\n  VUV: 0,\n  XAF: 0,\n  XOF: 0,\n  XPF: 0,\n  // 3 decimal places\n  BHD: 3,\n  IQD: 3,\n  JOD: 3,\n  KWD: 3,\n  LYD: 3,\n  OMR: 3,\n  TND: 3,\n  // 4 decimal places\n  CLF: 4,\n  UYW: 4,\n};\n\nfunction getCurrencyMinorUnits(currency: string): number {\n  const code = currency.trim().toUpperCase();\n  if (Object.prototype.hasOwnProperty.call(CURRENCY_EXPONENT_OVERRIDES, code)) {\n    return CURRENCY_EXPONENT_OVERRIDES[code];\n  }\n  try {\n    const resolved = new Intl.NumberFormat('en-US', {\n      style: 'currency',\n      currency: code,\n    }).resolvedOptions();\n    if (typeof resolved.maximumFractionDigits === 'number') {\n      return resolved.maximumFractionDigits;\n    }\n  } catch {\n    // Fallback if runtime Intl does not recognize the code\n  }\n  return 2;\n}\n\n/**\n * Parses a decimal string in major units into exact integer minor units (as BigInt)\n * without floating-point precision loss.\n */\nfunction parseToMinorUnits(amountStr: string, decimals: number): bigint {\n  const trimmed = amountStr.trim();\n  const match = /^([+-])?(\\d+)(?:\\.(\\d+))?$/.exec(trimmed);\n  if (!match) {\n    throw new Error(`Invalid decimal amount: \"${amountStr}\"`);\n  }\n\n  const sign = match[1] === '-' ? -1n : 1n;\n  const intPart = match[2];\n  const fracPart = match[3] ?? '';\n\n  if (fracPart.length > decimals) {\n    throw new Error(\n      `Amount \"${amountStr}\" has more decimal places than allowed (${decimals})`\n    );\n  }\n\n  const paddedFrac = fracPart.padEnd(decimals, '0');\n  const combined = intPart + paddedFrac;\n  return sign * BigInt(combined);\n}\n\nexport function splitOrder(order: Order): SplitResult {\n  const decimals = getCurrencyMinorUnits(order.currency);\n  const discountMinor = parseToMinorUnits(order.discount, decimals);\n\n  if (order.lines.length === 0) {\n    return { platformFee: 0, payouts: {} };\n  }\n\n  const lineAmounts = order.lines.map((line) =>\n    parseToMinorUnits(line.amount, decimals)\n  );\n  const totalAmount = lineAmounts.reduce((sum, a) => sum + a, 0n);\n\n  const allocatedDiscounts: bigint[] = new Array(order.lines.length).fill(0n);\n\n  if (discountMinor > 0n && totalAmount > 0n) {\n    // Exact share for line i is: (discountMinor * lineAmounts[i]) / totalAmount\n    // Floor is the integer division quotient; fractional remainder numerator is the modulo.\n    let allocatedSum = 0n;\n    const remainders: { index: number; rem: bigint }[] = [];\n\n    for (let i = 0; i < lineAmounts.length; i++) {\n      const numerator = discountMinor * lineAmounts[i];\n      const floorShare = numerator / totalAmount;\n      const rem = numerator % totalAmount;\n\n      allocatedDiscounts[i] = floorShare;\n      allocatedSum += floorShare;\n      remainders.push({ index: i, rem });\n    }\n\n    const leftover = Number(discountMinor - allocatedSum);\n\n    // Sort by largest remainder descending; break ties by earlier line index ascending\n    remainders.sort((a, b) => {\n      if (b.rem !== a.rem) {\n        return b.rem > a.rem ? 1 : -1;\n      }\n      return a.index - b.index;\n    });\n\n    for (let i = 0; i < leftover; i++) {\n      allocatedDiscounts[remainders[i].index] += 1n;\n    }\n  }\n\n  let totalPlatformFee = 0n;\n  const payoutsBigInt: Record<string, bigint> = {};\n\n  for (let i = 0; i < order.lines.length; i++) {\n    const sellerId = order.lines[i].sellerId;\n    const netLineAmount = lineAmounts[i] - allocatedDiscounts[i];\n\n    // Platform fee = 2.9% of netLineAmount = (netLineAmount * 29) / 1000\n    // Round half up: floor((netLineAmount * 29 + 500) / 1000) for non-negative amounts\n    const lineFee =\n      netLineAmount >= 0n\n        ? (netLineAmount * 29n + 500n) / 1000n\n        : -((-netLineAmount * 29n + 500n) / 1000n);\n\n    const sellerLinePayout = netLineAmount - lineFee;\n\n    totalPlatformFee += lineFee;\n    payoutsBigInt[sellerId] = (payoutsBigInt[sellerId] ?? 0n) + sellerLinePayout;\n  }\n\n  const payouts: Record<string, number> = {};\n  for (const [sellerId, amount] of Object.entries(payoutsBigInt)) {\n    payouts[sellerId] = Number(amount);\n  }\n\n  return {\n    platformFee: Number(totalPlatformFee),\n    payouts,\n  };\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "google/gemini-4-argon",
+  "provider": "Google",
+  "usage": {
+    "prompt_tokens": 516,
+    "completion_tokens": 1603,
+    "total_tokens": 2119,
+    "cost": 0.017062,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.017062,
+      "upstream_inference_prompt_cost": 0.001032,
+      "upstream_inference_completions_cost": 0.01603
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

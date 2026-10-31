@@ -1,0 +1,7 @@
+The pull request handles concurrency, out-of-order deliveries, retries, and crashes cleanly:
+
+1. **Fetching latest state from PayCo**: By calling `ctx.payco.getCharge(event.data.charge.id)` at the start of `handleWebhook`, the handler ensures it never acts on stale webhook snapshots and immediately sees if a charge was already fully refunded when the delivery started.
+2. **Atomic and monotonic accounting**: Inside a single `db.transaction`, `applied:${charge.id}` tracks the `credited` amount and the high-water mark of `refunded` (`Math.max(applied.refunded, charge.amountRefunded)`). The seller's balance is adjusted by the exact `delta`, preventing double-crediting or double-deducting across retries, concurrent deliveries, or out-of-order events.
+3. **Monotonic order status & safe shipping**: The order status transitions to `"refunded"` irreversibly if `fullyRefunded` is true or if the DB already shows `"refunded"`. Shipping is only triggered when the resulting status is `"paid"`, and uses a deterministic `idempotencyKey` (`ship:${orderId}`). If `shipping.ship` times out or the instance crashes after the DB transaction commits, subsequent retries/deliveries still evaluate `status === "paid"` and safely retry `shipping.ship` without duplicating balance updates or shipments.
+
+VERDICT: SAFE

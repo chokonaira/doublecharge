@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "```ts\n// Marketplace payout split.\n//\n// All arithmetic is done in BigInt integer minor units, so there is no\n// floating-point error. Results are converted to `number` only at the end,\n// and the code throws if a value would exceed Number.MAX_SAFE_INTEGER.\n//\n// Limitation: the JS runtime has no built-in ISO 4217 minor-unit table.\n// Intl uses CLDR data, which differs from ISO for some currencies\n// (for example IQD and MGA). So the ISO exceptions are listed explicitly\n// below, and every other valid code uses ISO's default of 2 decimals.\n// If ISO amends a currency's minor unit, this table must be updated.\n\nconst ISO_MINOR_UNIT_EXCEPTIONS: Record<string, number> = {\n  // 0 decimals\n  BIF: 0, CLP: 0, DJF: 0, GNF: 0, ISK: 0, JPY: 0, KMF: 0, KRW: 0, PYG: 0,\n  RWF: 0, UGX: 0, UYI: 0, VND: 0, VUV: 0, XAF: 0, XOF: 0, XPF: 0,\n  // 3 decimals\n  BHD: 3, IQD: 3, JOD: 3, KWD: 3, LYD: 3, OMR: 3, TND: 3,\n  // 4 decimals\n  CLF: 4, UYW: 4,\n};\n\n// ISO 4217 codes whose minor unit is \"N.A.\" (metals, funds, testing codes).\n// Their amounts cannot be expressed in minor units, so they are rejected.\nconst ISO_NO_MINOR_UNIT = new Set([\n  \"XAU\", \"XAG\", \"XPT\", \"XPD\", \"XDR\", \"XBA\", \"XBB\", \"XBC\", \"XBD\",\n  \"XTS\", \"XXX\", \"XSU\", \"XUA\",\n]);\n\nfunction minorUnitsFor(currency: string): number {\n  if (typeof currency !== \"string\" || !/^[A-Z]{3}$/.test(currency)) {\n    throw new Error(`Invalid ISO 4217 currency code: ${String(currency)}`);\n  }\n  if (ISO_NO_MINOR_UNIT.has(currency)) {\n    throw new Error(`Currency ${currency} has no ISO 4217 minor unit`);\n  }\n  if (currency in ISO_MINOR_UNIT_EXCEPTIONS) {\n    return ISO_MINOR_UNIT_EXCEPTIONS[currency];\n  }\n\n  // Reject unknown codes if the runtime can tell us which codes it knows.\n  const supportedValuesOf = (Intl as any).supportedValuesOf as\n    | ((k: string) => string[])\n    | undefined;\n  if (typeof supportedValuesOf === \"function\") {\n    try {\n      const known = supportedValuesOf(\"currency\");\n      if (Array.isArray(known) && known.length > 0 && !known.includes(currency)) {\n        throw new Error(`Unknown ISO 4217 currency code: ${currency}`);\n      }\n    } catch (e) {\n      if (e instanceof Error && e.message.startsWith(\"Unknown\")) throw e;\n      // If the Intl lookup itself fails, fall through to the ISO default.\n    }\n  }\n  return 2;\n}\n\nfunction toMinor(amount: string, decimals: number, label: string): bigint {\n  if (typeof amount !== \"string\" || !/^\\d+(\\.\\d+)?$/.test(amount)) {\n    throw new Error(`Invalid amount for ${label}: ${String(amount)}`);\n  }\n  const [intPart, fracPart = \"\"] = amount.split(\".\");\n  if (fracPart.length > decimals) {\n    throw new Error(\n      `Amount for ${label} has more than ${decimals} decimal places: ${amount}`\n    );\n  }\n  return BigInt(intPart + fracPart.padEnd(decimals, \"0\"));\n}\n\nfunction toSafeNumber(v: bigint): number {\n  if (\n    v > BigInt(Number.MAX_SAFE_INTEGER) ||\n    v < BigInt(Number.MIN_SAFE_INTEGER)\n  ) {\n    throw new Error(\"Amount exceeds safe integer range\");\n  }\n  return Number(v);\n}\n\nexport function splitOrder(order: {\n  currency: string;\n  lines: { sellerId: string; amount: string }[];\n  discount: string;\n}): { platformFee: number; payouts: Record<string, number> } {\n  if (!order || !Array.isArray(order.lines)) {\n    throw new Error(\"Invalid order\");\n  }\n  const decimals = minorUnitsFor(order.currency);\n\n  const amounts = order.lines.map((l, i) => {\n    if (!l || typeof l.sellerId !== \"string\") {\n      throw new Error(`Invalid sellerId on line ${i}`);\n    }\n    return toMinor(l.amount, decimals, `line ${i}`);\n  });\n  const discount = toMinor(order.discount, decimals, \"discount\");\n  const total = amounts.reduce((s, a) => s + a, 0n);\n\n  if (discount > total) {\n    throw new Error(\"Discount exceeds order total\");\n  }\n\n  // Largest remainder allocation of the discount.\n  const alloc: bigint[] = amounts.map(() => 0n);\n  if (discount > 0n) {\n    // A zero total is impossible here, because discount <= total.\n    const rems: { i: number; r: bigint }[] = [];\n    let allocated = 0n;\n    amounts.forEach((a, i) => {\n      const num = discount * a;\n      alloc[i] = num / total;\n      allocated += alloc[i];\n      rems.push({ i, r: num % total });\n    });\n\n    // Largest fractional remainder first; ties go to the earlier line.\n    rems.sort((x, y) => (x.r === y.r ? x.i - y.i : x.r > y.r ? -1 : 1));\n\n    let leftover = discount - allocated; // always less than the line count\n    for (let k = 0; leftover > 0n; k++, leftover--) {\n      alloc[rems[k].i] += 1n;\n    }\n  }\n\n  let platformFee = 0n;\n  const payouts = new Map<string, bigint>();\n  order.lines.forEach((l, i) => {\n    const net = amounts[i] - alloc[i]; // never negative: alloc <= amount\n    const fee = (net * 29n + 500n) / 1000n; // 2.9%, rounded half up\n    platformFee += fee;\n    payouts.set(l.sellerId, (payouts.get(l.sellerId) ?? 0n) + (net - fee));\n  });\n\n  // Object.fromEntries defines own properties, so a sellerId such as\n  // \"__proto__\" is stored safely as data.\n  return {\n    platformFee: toSafeNumber(platformFee),\n    payouts: Object.fromEntries(\n      [...payouts].map(([k, v]) => [k, toSafeNumber(v)])\n    ),\n  };\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "anthropic/claude-opus-5.5",
+  "provider": "Claude Platform on AWS",
+  "usage": {
+    "prompt_tokens": 673,
+    "completion_tokens": 3352,
+    "total_tokens": 4025,
+    "cost": 0.069732,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.069732,
+      "upstream_inference_prompt_cost": 0.002692,
+      "upstream_inference_completions_cost": 0.06704
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 973,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

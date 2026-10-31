@@ -1,0 +1,11 @@
+{
+  "model": "google/gemini-4-argon",
+  "sample": "webhook-handler--gemini-4-argon-t1",
+  "task": "webhook-handler",
+  "origin": "model",
+  "knownBug": false,
+  "trial": 2,
+  "cost": 0.06326,
+  "ms": 67631,
+  "verdict": "SAFE"
+}

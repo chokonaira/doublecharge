@@ -1,0 +1,4 @@
+{
+  "status": "invalid",
+  "detail": "steps[0][0] (A): requestId must be a short string"
+}

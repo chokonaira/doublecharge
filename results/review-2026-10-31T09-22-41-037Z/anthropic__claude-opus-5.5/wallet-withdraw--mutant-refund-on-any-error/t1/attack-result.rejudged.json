@@ -1,0 +1,42 @@
+{
+  "status": "confirmed",
+  "how": "as written",
+  "detail": "the wallet (4000) plus 3000 paid out does not equal 10000",
+  "trace": [
+    {
+      "actor": "A",
+      "call": "db.get withdrawal:r1",
+      "result": "none"
+    },
+    {
+      "actor": "A",
+      "call": "db.update wallet:u1",
+      "result": "10000 -> 7000"
+    },
+    {
+      "actor": "A",
+      "call": "instance killed",
+      "result": "before this request's next call"
+    },
+    {
+      "actor": "A retry 1",
+      "call": "db.get withdrawal:r1",
+      "result": "none"
+    },
+    {
+      "actor": "A retry 1",
+      "call": "db.update wallet:u1",
+      "result": "7000 -> 4000"
+    },
+    {
+      "actor": "A retry 1",
+      "call": "payco.createPayout {\"amount\":3000,\"currency\":\"EUR\",\"destination\":\"u1\"} key=r1",
+      "result": "processed"
+    },
+    {
+      "actor": "A retry 1",
+      "call": "db.set withdrawal:r1",
+      "result": "\"paid_out\""
+    }
+  ]
+}

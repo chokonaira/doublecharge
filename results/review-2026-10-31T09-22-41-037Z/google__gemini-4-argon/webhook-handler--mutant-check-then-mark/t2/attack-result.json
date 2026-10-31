@@ -1,0 +1,102 @@
+{
+  "status": "confirmed",
+  "how": "as written",
+  "detail": "the seller's balance is 200; with 500 refunded it should be 500",
+  "trace": [
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "db.get event:evt_succeeded",
+      "result": "none"
+    },
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "payco.getCharge ch_1",
+      "result": "amount 1000, refunded 500"
+    },
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"pending\"}"
+    },
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "db.update balance:s1",
+      "result": "none -> 1000"
+    },
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "shipping.ship o1",
+      "result": "shipped"
+    },
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "db.update order:o1",
+      "result": "{\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"pending\"} -> {\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"paid\"}"
+    },
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "db.set event:evt_succeeded",
+      "result": "true"
+    },
+    {
+      "actor": "evt_refund_300 settle 1",
+      "call": "db.get event:evt_refund_300",
+      "result": "none"
+    },
+    {
+      "actor": "evt_refund_300 settle 1",
+      "call": "payco.getCharge ch_1",
+      "result": "amount 1000, refunded 500"
+    },
+    {
+      "actor": "evt_refund_300 settle 1",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"paid\"}"
+    },
+    {
+      "actor": "evt_refund_300 settle 1",
+      "call": "db.update balance:s1",
+      "result": "1000 -> 700"
+    },
+    {
+      "actor": "evt_refund_300 settle 1",
+      "call": "db.update order:o1",
+      "result": "{\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"paid\"} -> {\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"paid\"}"
+    },
+    {
+      "actor": "evt_refund_300 settle 1",
+      "call": "db.set event:evt_refund_300",
+      "result": "true"
+    },
+    {
+      "actor": "evt_refund_500 settle 1",
+      "call": "db.get event:evt_refund_500",
+      "result": "none"
+    },
+    {
+      "actor": "evt_refund_500 settle 1",
+      "call": "payco.getCharge ch_1",
+      "result": "amount 1000, refunded 500"
+    },
+    {
+      "actor": "evt_refund_500 settle 1",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"paid\"}"
+    },
+    {
+      "actor": "evt_refund_500 settle 1",
+      "call": "db.update balance:s1",
+      "result": "700 -> 200"
+    },
+    {
+      "actor": "evt_refund_500 settle 1",
+      "call": "db.update order:o1",
+      "result": "{\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"paid\"} -> {\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"paid\"}"
+    },
+    {
+      "actor": "evt_refund_500 settle 1",
+      "call": "db.set event:evt_refund_500",
+      "result": "true"
+    }
+  ]
+}
