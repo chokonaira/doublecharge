@@ -14,3 +14,6 @@ spike/
 
 # coverage reports
 coverage/
+
+# recording notes for the walkthrough video, not part of the submission
+video/
