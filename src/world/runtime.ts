@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { types } from "node:util";
 
 /** Decides when a waiting world call resumes. Without one, calls resume in arrival order. */
 export interface Scheduler {
@@ -10,6 +11,8 @@ export interface TraceEntry {
   actor: string;
   call: string;
   result: string;
+  /** Set when the same request made the same call with the same result several times in a row (a polling loop). */
+  times?: number;
 }
 
 let scheduler: Scheduler | undefined;
@@ -23,6 +26,7 @@ export function useScheduler(next: Scheduler | undefined): void {
 /** Starts recording world calls; returns the array they are appended to. */
 export function startTrace(): TraceEntry[] {
   trace = [];
+  cut = undefined;
   return trace;
 }
 
@@ -30,13 +34,47 @@ export function stopTrace(): void {
   trace = undefined;
 }
 
-/** Calls kept per trace: far more than any scenario makes (about 50), far fewer than a livelock's thousands. */
-export const TRACE_LIMIT = 500;
+/**
+ * A trace keeps its first TRACE_HEAD entries and its last TRACE_TAIL, with one note between them saying
+ * how many were left out: far more than any scenario makes (about 50), far fewer than a livelock's
+ * thousands, and the end of a run, where a failure shows, is always kept.
+ */
+export const TRACE_HEAD = 300;
+export const TRACE_TAIL = 200;
+let cut: { entry: TraceEntry; left: number } | undefined;
 
 function keep(entry: TraceEntry): void {
   if (!trace) return;
-  if (trace.length < TRACE_LIMIT) trace.push(entry);
-  else if (trace.length === TRACE_LIMIT) trace.push({ actor: "grader", call: "trace cut", result: `only the first ${TRACE_LIMIT} calls are kept` });
+  const last = trace.at(-1);
+  if (last && last !== cut?.entry && last.actor === entry.actor && last.call === entry.call && last.result === entry.result) {
+    last.times = (last.times ?? 1) + 1;
+    return;
+  }
+  if (trace.length < TRACE_HEAD + TRACE_TAIL) {
+    trace.push(entry);
+    return;
+  }
+  if (!cut) {
+    cut = { entry: { actor: "grader", call: "trace cut", result: "" }, left: 0 };
+    trace.splice(TRACE_HEAD, 1, cut.entry);
+  } else trace.splice(TRACE_HEAD + 1, 1);
+  cut.left++;
+  cut.entry.result = `${cut.left} entries left out here; the first ${TRACE_HEAD} and the last ${TRACE_TAIL} are kept`;
+  trace.push(entry);
+}
+
+/** What a request answered, read without running any of its code: no getters, toJSON or proxy traps. */
+function answerText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value === undefined) return "done";
+  if (value === null || (typeof value !== "object" && typeof value !== "function")) return String(value);
+  return "(an object)";
+}
+function noAnswerText(error: unknown): string {
+  if (typeof error !== "object" || error === null || types.isProxy(error)) return "none";
+  if (error instanceof InstanceCrashed) return "none: the connection dropped";
+  const message: unknown = Object.getOwnPropertyDescriptor(error, "message")?.value;
+  return typeof message === "string" ? `none: ${message}` : "none";
 }
 
 /**
@@ -49,12 +87,16 @@ export function asActor<T>(name: string, fn: () => T): T {
     const result = fn();
     if (result instanceof Promise) {
       const run = epoch;
-      const answer = (text: string) => {
-        if (run === epoch) keep({ actor: name, call: "answer", result: text });
+      const answer = (text: () => string) => {
+        try {
+          if (run === epoch) keep({ actor: name, call: "answer", result: text() });
+        } catch {
+          // never let tracing fail a request
+        }
       };
       result.then(
-        (value: unknown) => answer(typeof value === "string" ? value : value === undefined ? "done" : show(value)),
-        (error: unknown) => answer(error instanceof InstanceCrashed ? "none: the connection dropped" : `none: ${error instanceof Error ? error.message : String(error)}`),
+        (value: unknown) => answer(() => answerText(value)),
+        (error: unknown) => answer(() => noAnswerText(error)),
       );
     }
     return result;

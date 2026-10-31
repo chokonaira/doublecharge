@@ -19,7 +19,8 @@ import {
   Shipping,
   startTrace,
   stopTrace,
-  TRACE_LIMIT,
+  TRACE_HEAD,
+  TRACE_TAIL,
 } from "../src/world/index.ts";
 
 const charge = { amount: 500, currency: "EUR", customerId: "cus_1" };
@@ -273,12 +274,38 @@ describe("instance crashes", () => {
 });
 
 describe("traces", () => {
-  it("keep the first calls of a run that makes thousands, and say they were cut", () => {
+  it("fold a request making the same call with the same result over and over into one entry with a count", () => {
     const trace = startTrace();
     try {
-      for (let i = 0; i < TRACE_LIMIT + 100; i++) record(`db.get k${i}`, "none");
-      assert.equal(trace.length, TRACE_LIMIT + 1);
-      assert.equal(trace.at(-1)?.call, "trace cut");
+      asActor("B", () => {
+        for (let i = 0; i < 297; i++) record("db.transaction", "committed (no writes)");
+        record("db.get order:o1", "paid");
+      });
+      asActor("D", () => record("db.transaction", "committed (no writes)"));
+      assert.deepEqual(
+        trace.map((t) => [t.actor, t.call, t.times]),
+        [
+          ["B", "db.transaction", 297],
+          ["B", "db.get order:o1", undefined],
+          ["D", "db.transaction", undefined],
+        ],
+      );
+    } finally {
+      stopTrace();
+    }
+  });
+
+  it("keep the start and the end of a run that makes thousands of calls, and say how many were left out", () => {
+    const trace = startTrace();
+    try {
+      const total = TRACE_HEAD + TRACE_TAIL + 1000;
+      for (let i = 0; i < total; i++) record(`db.get k${i}`, "none");
+      assert.equal(trace.length, TRACE_HEAD + TRACE_TAIL + 1);
+      assert.equal(trace[TRACE_HEAD - 1]?.call, `db.get k${TRACE_HEAD - 1}`);
+      assert.equal(trace[TRACE_HEAD]?.call, "trace cut");
+      assert.match(trace[TRACE_HEAD]!.result, /^1000 entries left out here/);
+      assert.equal(trace[TRACE_HEAD + 1]?.call, `db.get k${total - TRACE_TAIL}`);
+      assert.equal(trace.at(-1)?.call, `db.get k${total - 1}`);
     } finally {
       stopTrace();
     }
@@ -292,10 +319,31 @@ describe("traces", () => {
       await asActor("B", async () => {
         throw new InstanceCrashed("instance was killed mid-request");
       }).catch(() => {});
-      await asActor("C", async () => ({ status: "ok" }));
+      // An answer's own code (a getter, toJSON, a proxy trap) is never run to describe it.
+      let ran = false;
+      const sneaky = {
+        get status() {
+          ran = true;
+          return "ok";
+        },
+        toJSON() {
+          ran = true;
+          return {};
+        },
+      };
+      await asActor("C", async () => sneaky);
+      await asActor("D", async () => {
+        throw new Proxy(new Error("x"), {
+          get() {
+            ran = true;
+            return "trap";
+          },
+        });
+      }).catch(() => {});
+      assert.equal(ran, false);
       assert.deepEqual(
         trace.map((t) => `${t.actor} ${t.call}: ${t.result}`),
-        ["A answer: paid", "B answer: none: the connection dropped", 'C answer: {"status":"ok"}'],
+        ["A answer: paid", "B answer: none: the connection dropped", "C answer: (an object)", "D answer: none"],
       );
     } finally {
       stopTrace();

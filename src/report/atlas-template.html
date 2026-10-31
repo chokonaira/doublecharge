@@ -232,7 +232,7 @@ function traceTable(trace) {
   return el("table", { class: "trace" },
     trace.map((step) => el("tr", { class: step.call === "instance killed" ? "killed" : "" },
       el("td", { class: "who", style: `--lane:${laneOf(step.actor)}`, text: step.actor }),
-      el("td", { class: "call", text: step.call }),
+      el("td", { class: "call", text: step.times ? `${step.call}  ×${step.times}` : step.call }),
       el("td", { class: "result", text: step.result }))));
 }
 

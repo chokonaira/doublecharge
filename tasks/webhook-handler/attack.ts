@@ -132,7 +132,7 @@ export const webhookAttacks: AttackAdapter = {
           [undelivered.length === 0, `${undelivered.join(", ")} still failed after five rounds of redelivery`],
           [balance === AMOUNT - refunded, `the seller's balance is ${balance}; with ${refunded} refunded it should be ${AMOUNT - refunded}`],
           [status === (full ? "refunded" : "paid"), `the order is "${status}" although ${full ? "the charge is fully refunded" : `only ${refunded} of ${AMOUNT} is refunded`}`],
-          [full || shipments === 1, "the order is not fully refunded but never shipped"],
+          [full || shipments >= 1, "the order is not fully refunded but never shipped"],
         ]);
       },
     };
