@@ -6,11 +6,11 @@
     {
       "actor": "A",
       "call": "db.transaction",
-      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:721dc3a2-cd7d-48ee-aee2-6960810b56a3\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:0dcb7c4a-e1a0-4810-8d6b-d75f0be95681\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
     },
     {
       "actor": "A",
-      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:721dc3a2-cd7d-48ee-aee2-6960810b56a3",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:0dcb7c4a-e1a0-4810-8d6b-d75f0be95681",
       "result": "card_declined"
     },
     {
@@ -20,28 +20,38 @@
     },
     {
       "actor": "B",
-      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:721dc3a2-cd7d-48ee-aee2-6960810b56a3",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:0dcb7c4a-e1a0-4810-8d6b-d75f0be95681",
       "result": "replayed card_declined"
     },
     {
       "actor": "B",
       "call": "db.transaction",
-      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:721dc3a2-cd7d-48ee-aee2-6960810b56a3\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..."
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:0dcb7c4a-e1a0-4810-8d6b-d75f0be95681\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..."
+    },
+    {
+      "actor": "B",
+      "call": "answer",
+      "result": "declined"
     },
     {
       "actor": "C",
       "call": "db.transaction",
-      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:2193dee1-26b6-46c7-af58-17647d7dd78d\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:e26e6095-1cf1-4c46-8465-b8d459993b42\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
     },
     {
       "actor": "C",
-      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:2193dee1-26b6-46c7-af58-17647d7dd78d",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:e26e6095-1cf1-4c46-8465-b8d459993b42",
       "result": "processed"
     },
     {
       "actor": "C",
       "call": "db.transaction",
-      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:2193dee1-26b6-46c7-af58-17647d7dd78d\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"paid\"}"
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:e26e6095-1cf1-4c46-8465-b8d459993b42\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"paid\"}"
+    },
+    {
+      "actor": "C",
+      "call": "answer",
+      "result": "paid"
     },
     {
       "actor": "A",
@@ -49,9 +59,19 @@
       "result": "committed (no writes)"
     },
     {
+      "actor": "A",
+      "call": "answer",
+      "result": "declined"
+    },
+    {
       "actor": "final press settle 1",
       "call": "db.transaction",
       "result": "committed (no writes)"
+    },
+    {
+      "actor": "final press settle 1",
+      "call": "answer",
+      "result": "paid"
     }
   ]
 }

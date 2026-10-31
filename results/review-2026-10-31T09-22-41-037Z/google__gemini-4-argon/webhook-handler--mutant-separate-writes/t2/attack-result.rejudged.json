@@ -24,6 +24,11 @@
       "result": "right after the call above, before seeing its result"
     },
     {
+      "actor": "S",
+      "call": "answer",
+      "result": "none: the connection dropped"
+    },
+    {
       "actor": "S retry 1",
       "call": "payco.getCharge ch_1",
       "result": "amount 1000, refunded 0"
@@ -47,6 +52,11 @@
       "actor": "S retry 1",
       "call": "shipping.ship o1 key=ship:o1",
       "result": "shipped"
+    },
+    {
+      "actor": "S retry 1",
+      "call": "answer",
+      "result": "done"
     }
   ]
 }

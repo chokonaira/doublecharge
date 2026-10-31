@@ -6,16 +6,16 @@
     {
       "actor": "A",
       "call": "db.transaction",
-      "result": "committed checkout_lock:o1={\"id\":\"43c40b8e-d6f9-46a0-9c33-58f08fb9ec9e\",\"expiresAt\":1793491230000}"
+      "result": "committed checkout_lock:o1={\"id\":\"fa6be2d5-1ebb-4a59-9991-076dd630eddf\",\"expiresAt\":1793491230000}"
     },
     {
       "actor": "A",
       "call": "db.transaction",
-      "result": "committed checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:69600616-8fbe-4c7e-b808-a2356969be03\",\"status\"..."
+      "result": "committed checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:7abe5564-5063-45b6-83ac-c96ef36369c0\",\"status\"..."
     },
     {
       "actor": "A",
-      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:69600616-8fbe-4c7e-b808-a2356969be03",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:7abe5564-5063-45b6-83ac-c96ef36369c0",
       "result": "card_declined"
     },
     {
@@ -1521,7 +1521,7 @@
     {
       "actor": "B",
       "call": "db.transaction",
-      "result": "committed checkout_lock:o1={\"id\":\"e02b5683-3979-492f-9d29-b252e7cd4da0\",\"expiresAt\":1793491260000}"
+      "result": "committed checkout_lock:o1={\"id\":\"0b9208a1-6449-4071-a74a-73e5d1cc70b9\",\"expiresAt\":1793491260000}"
     },
     {
       "actor": "B",
@@ -1530,13 +1530,13 @@
     },
     {
       "actor": "B",
-      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:69600616-8fbe-4c7e-b808-a2356969be03",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:7abe5564-5063-45b6-83ac-c96ef36369c0",
       "result": "replayed card_declined"
     },
     {
       "actor": "B",
       "call": "db.transaction",
-      "result": "committed order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..., checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:69600616-8fbe-4c7e-b808-a2356969be03\",\"status\"..."
+      "result": "committed order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..., checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:7abe5564-5063-45b6-83ac-c96ef36369c0\",\"status\"..."
     },
     {
       "actor": "B",
@@ -1544,18 +1544,23 @@
       "result": "committed checkout_lock:o1=deleted"
     },
     {
-      "actor": "C",
-      "call": "db.transaction",
-      "result": "committed checkout_lock:o1={\"id\":\"8ed5bc03-4da4-4a24-bf90-304f204ca11a\",\"expiresAt\":1793491260000}"
+      "actor": "B",
+      "call": "answer",
+      "result": "declined"
     },
     {
       "actor": "C",
       "call": "db.transaction",
-      "result": "committed checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:17280348-b457-4a1e-be51-9bdefaa9d6e7\",\"status\"..."
+      "result": "committed checkout_lock:o1={\"id\":\"e08115a4-ff09-4af1-90e6-5f77dfc92976\",\"expiresAt\":1793491260000}"
     },
     {
       "actor": "C",
-      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:17280348-b457-4a1e-be51-9bdefaa9d6e7",
+      "call": "db.transaction",
+      "result": "committed checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:ba08e258-a0b3-43e6-a3d7-48d4e4c81a36\",\"status\"..."
+    },
+    {
+      "actor": "C",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:ba08e258-a0b3-43e6-a3d7-48d4e4c81a36",
       "result": "processed"
     },
     {
@@ -1564,29 +1569,24 @@
       "result": "right after the call above, before seeing its result"
     },
     {
-      "actor": "A",
-      "call": "db.transaction",
-      "result": "committed order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..., checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:69600616-8fbe-4c7e-b808-a2356969be03\",\"status\"..."
+      "actor": "C",
+      "call": "answer",
+      "result": "none: the connection dropped"
     },
     {
       "actor": "A",
       "call": "db.transaction",
-      "result": "committed (no writes)"
+      "result": "committed order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..., checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:7abe5564-5063-45b6-83ac-c96ef36369c0\",\"status\"..."
     },
     {
-      "actor": "D",
+      "actor": "A",
       "call": "db.transaction",
       "result": "committed (no writes)"
     },
     {
-      "actor": "D",
-      "call": "db.transaction",
-      "result": "committed (no writes)"
-    },
-    {
-      "actor": "D",
-      "call": "db.transaction",
-      "result": "committed (no writes)"
+      "actor": "A",
+      "call": "answer",
+      "result": "declined"
     },
     {
       "actor": "D",

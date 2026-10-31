@@ -39,6 +39,11 @@
       "result": "right after the call above, before seeing its result"
     },
     {
+      "actor": "A",
+      "call": "answer",
+      "result": "none: the connection dropped"
+    },
+    {
       "actor": "A retry 1",
       "call": "db.insertIfAbsent withdrawal:r1 {\"status\":\"reserving\"}",
       "result": "already present"
@@ -47,6 +52,11 @@
       "actor": "A retry 1",
       "call": "db.get withdrawal:r1",
       "result": "{\"status\":\"rejected\"}"
+    },
+    {
+      "actor": "A retry 1",
+      "call": "answer",
+      "result": "rejected"
     }
   ]
 }

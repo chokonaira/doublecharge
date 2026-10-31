@@ -34,6 +34,11 @@
       "result": "shipped"
     },
     {
+      "actor": "S",
+      "call": "answer",
+      "result": "done"
+    },
+    {
       "actor": "D1",
       "call": "db.insertIfAbsent event:evt_refund_300 true",
       "result": "stored"
@@ -62,6 +67,11 @@
       "actor": "D1",
       "call": "shipping.ship o1 key=ship:o1",
       "result": "replayed (no new shipment)"
+    },
+    {
+      "actor": "D1",
+      "call": "answer",
+      "result": "done"
     }
   ]
 }

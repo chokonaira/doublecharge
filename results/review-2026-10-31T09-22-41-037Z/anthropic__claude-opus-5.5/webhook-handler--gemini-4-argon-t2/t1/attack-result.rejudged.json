@@ -19,6 +19,11 @@
       "result": "committed order:o1={\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"refunded\"}, charge_state:ch_1={\"credited\":true,\"refundedAmount\":1000,\"shipped\":false}"
     },
     {
+      "actor": "R",
+      "call": "answer",
+      "result": "done"
+    },
+    {
       "actor": "S",
       "call": "db.transaction",
       "result": "committed charge_state:ch_1={\"credited\":true,\"refundedAmount\":1000,\"shipped\":false}"
@@ -32,6 +37,11 @@
       "actor": "S",
       "call": "db.update charge_state:ch_1",
       "result": "{\"credited\":true,\"refundedAmount\":1000,\"shipped\":false} -> {\"credited\":true,\"refundedAmount\":1000,\"shipped\":true}"
+    },
+    {
+      "actor": "S",
+      "call": "answer",
+      "result": "done"
     }
   ]
 }

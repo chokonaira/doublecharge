@@ -24,6 +24,11 @@
       "result": "6000"
     },
     {
+      "actor": "B",
+      "call": "answer",
+      "result": "paid_out"
+    },
+    {
       "actor": "A",
       "call": "payco.createPayout {\"amount\":3000,\"currency\":\"EUR\",\"destination\":\"u1\"} key=r1",
       "result": "processed"
@@ -32,6 +37,11 @@
       "actor": "A",
       "call": "db.set wallet:u1",
       "result": "7000"
+    },
+    {
+      "actor": "A",
+      "call": "answer",
+      "result": "paid_out"
     }
   ]
 }

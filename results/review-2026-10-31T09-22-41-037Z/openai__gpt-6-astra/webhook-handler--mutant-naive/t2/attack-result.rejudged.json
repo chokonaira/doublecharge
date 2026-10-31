@@ -29,6 +29,11 @@
       "result": "shipped, but the response was lost (timeout)"
     },
     {
+      "actor": "S",
+      "call": "answer",
+      "result": "none: timeout"
+    },
+    {
       "actor": "S retry 1",
       "call": "db.get order:o1",
       "result": "{\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"paid\"}"
@@ -52,6 +57,11 @@
       "actor": "S retry 1",
       "call": "shipping.ship o1",
       "result": "shipped"
+    },
+    {
+      "actor": "S retry 1",
+      "call": "answer",
+      "result": "done"
     }
   ]
 }

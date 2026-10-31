@@ -29,6 +29,11 @@
       "result": "shipped"
     },
     {
+      "actor": "S1",
+      "call": "answer",
+      "result": "done"
+    },
+    {
       "actor": "S2",
       "call": "db.get order:o1",
       "result": "{\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"paid\"}"
@@ -52,6 +57,11 @@
       "actor": "S2",
       "call": "shipping.ship o1",
       "result": "shipped"
+    },
+    {
+      "actor": "S2",
+      "call": "answer",
+      "result": "done"
     }
   ]
 }

@@ -19,6 +19,11 @@
       "result": "right after the call above, before seeing its result"
     },
     {
+      "actor": "A",
+      "call": "answer",
+      "result": "none: the connection dropped"
+    },
+    {
       "actor": "A retry 1",
       "call": "db.get order:o1",
       "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
@@ -27,6 +32,11 @@
       "actor": "A retry 1",
       "call": "db.insertIfAbsent lock:o1 true",
       "result": "already present"
+    },
+    {
+      "actor": "A retry 1",
+      "call": "answer",
+      "result": "none: payment already in progress"
     },
     {
       "actor": "A settle 1",
@@ -39,6 +49,11 @@
       "result": "already present"
     },
     {
+      "actor": "A settle 1",
+      "call": "answer",
+      "result": "none: payment already in progress"
+    },
+    {
       "actor": "A settle 2",
       "call": "db.get order:o1",
       "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
@@ -47,6 +62,11 @@
       "actor": "A settle 2",
       "call": "db.insertIfAbsent lock:o1 true",
       "result": "already present"
+    },
+    {
+      "actor": "A settle 2",
+      "call": "answer",
+      "result": "none: payment already in progress"
     },
     {
       "actor": "A settle 3",
@@ -59,6 +79,11 @@
       "result": "already present"
     },
     {
+      "actor": "A settle 3",
+      "call": "answer",
+      "result": "none: payment already in progress"
+    },
+    {
       "actor": "A settle 4",
       "call": "db.get order:o1",
       "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
@@ -67,6 +92,11 @@
       "actor": "A settle 4",
       "call": "db.insertIfAbsent lock:o1 true",
       "result": "already present"
+    },
+    {
+      "actor": "A settle 4",
+      "call": "answer",
+      "result": "none: payment already in progress"
     },
     {
       "actor": "A settle 5",
@@ -79,6 +109,11 @@
       "result": "already present"
     },
     {
+      "actor": "A settle 5",
+      "call": "answer",
+      "result": "none: payment already in progress"
+    },
+    {
       "actor": "final press settle 1",
       "call": "db.get order:o1",
       "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
@@ -87,6 +122,11 @@
       "actor": "final press settle 1",
       "call": "db.insertIfAbsent lock:o1 true",
       "result": "already present"
+    },
+    {
+      "actor": "final press settle 1",
+      "call": "answer",
+      "result": "none: payment already in progress"
     },
     {
       "actor": "final press settle 2",
@@ -99,6 +139,11 @@
       "result": "already present"
     },
     {
+      "actor": "final press settle 2",
+      "call": "answer",
+      "result": "none: payment already in progress"
+    },
+    {
       "actor": "final press settle 3",
       "call": "db.get order:o1",
       "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
@@ -107,6 +152,11 @@
       "actor": "final press settle 3",
       "call": "db.insertIfAbsent lock:o1 true",
       "result": "already present"
+    },
+    {
+      "actor": "final press settle 3",
+      "call": "answer",
+      "result": "none: payment already in progress"
     },
     {
       "actor": "final press settle 4",
@@ -119,6 +169,11 @@
       "result": "already present"
     },
     {
+      "actor": "final press settle 4",
+      "call": "answer",
+      "result": "none: payment already in progress"
+    },
+    {
       "actor": "final press settle 5",
       "call": "db.get order:o1",
       "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
@@ -127,6 +182,11 @@
       "actor": "final press settle 5",
       "call": "db.insertIfAbsent lock:o1 true",
       "result": "already present"
+    },
+    {
+      "actor": "final press settle 5",
+      "call": "answer",
+      "result": "none: payment already in progress"
     }
   ]
 }

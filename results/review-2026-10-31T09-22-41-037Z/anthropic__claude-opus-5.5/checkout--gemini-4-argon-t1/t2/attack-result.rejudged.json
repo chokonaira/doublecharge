@@ -6,12 +6,12 @@
     {
       "actor": "A",
       "call": "db.transaction",
-      "result": "committed checkout_lock:o1={\"id\":\"4bd09c1a-31e8-4193-9e51-eeb9173ad6e3\",\"expiresAt\":1793491230000}"
+      "result": "committed checkout_lock:o1={\"id\":\"830eb739-df0f-4ab8-a85b-8d8d8a047ac4\",\"expiresAt\":1793491230000}"
     },
     {
       "actor": "A",
       "call": "db.transaction",
-      "result": "committed checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:5bf0f7ec-45ec-415e-ac83-465793eec983\",\"status\"..."
+      "result": "committed checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:9d363275-c7e7-48b6-bc49-4f82f9fcaada\",\"status\"..."
     },
     {
       "actor": "B",
@@ -1516,7 +1516,7 @@
     {
       "actor": "B",
       "call": "db.transaction",
-      "result": "committed checkout_lock:o1={\"id\":\"15cb7e01-3912-4841-a17a-9798e0404b86\",\"expiresAt\":1793491260000}"
+      "result": "committed checkout_lock:o1={\"id\":\"622bfca9-eb60-4f22-8240-787da66614f1\",\"expiresAt\":1793491260000}"
     },
     {
       "actor": "B",
@@ -1525,13 +1525,13 @@
     },
     {
       "actor": "B",
-      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:5bf0f7ec-45ec-415e-ac83-465793eec983",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:9d363275-c7e7-48b6-bc49-4f82f9fcaada",
       "result": "card_declined"
     },
     {
       "actor": "B",
       "call": "db.transaction",
-      "result": "committed order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..., checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:5bf0f7ec-45ec-415e-ac83-465793eec983\",\"status\"..."
+      "result": "committed order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..., checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:9d363275-c7e7-48b6-bc49-4f82f9fcaada\",\"status\"..."
     },
     {
       "actor": "B",
@@ -1539,18 +1539,23 @@
       "result": "committed checkout_lock:o1=deleted"
     },
     {
-      "actor": "C",
-      "call": "db.transaction",
-      "result": "committed checkout_lock:o1={\"id\":\"82c26443-0526-4c66-bd5c-c99a16b4b765\",\"expiresAt\":1793491260000}"
+      "actor": "B",
+      "call": "answer",
+      "result": "declined"
     },
     {
       "actor": "C",
       "call": "db.transaction",
-      "result": "committed checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:a3178b56-28bc-4e81-b566-9536637af29e\",\"status\"..."
+      "result": "committed checkout_lock:o1={\"id\":\"d6b94f80-fe64-442a-ab00-660563c22676\",\"expiresAt\":1793491260000}"
     },
     {
       "actor": "C",
-      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:a3178b56-28bc-4e81-b566-9536637af29e",
+      "call": "db.transaction",
+      "result": "committed checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:042c60f8-dcf1-4ea2-8c49-73af621bc032\",\"status\"..."
+    },
+    {
+      "actor": "C",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:042c60f8-dcf1-4ea2-8c49-73af621bc032",
       "result": "processed"
     },
     {
@@ -1559,14 +1564,19 @@
       "result": "right after the call above, before seeing its result"
     },
     {
+      "actor": "C",
+      "call": "answer",
+      "result": "none: the connection dropped"
+    },
+    {
       "actor": "A",
-      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:5bf0f7ec-45ec-415e-ac83-465793eec983",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:o1:9d363275-c7e7-48b6-bc49-4f82f9fcaada",
       "result": "replayed card_declined"
     },
     {
       "actor": "A",
       "call": "db.transaction",
-      "result": "committed order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..., checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:5bf0f7ec-45ec-415e-ac83-465793eec983\",\"status\"..."
+      "result": "committed order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..., checkout_attempt:o1={\"idempotencyKey\":\"checkout:o1:9d363275-c7e7-48b6-bc49-4f82f9fcaada\",\"status\"..."
     },
     {
       "actor": "A",
@@ -1574,19 +1584,9 @@
       "result": "committed (no writes)"
     },
     {
-      "actor": "D",
-      "call": "db.transaction",
-      "result": "committed (no writes)"
-    },
-    {
-      "actor": "D",
-      "call": "db.transaction",
-      "result": "committed (no writes)"
-    },
-    {
-      "actor": "D",
-      "call": "db.transaction",
-      "result": "committed (no writes)"
+      "actor": "A",
+      "call": "answer",
+      "result": "declined"
     },
     {
       "actor": "D",

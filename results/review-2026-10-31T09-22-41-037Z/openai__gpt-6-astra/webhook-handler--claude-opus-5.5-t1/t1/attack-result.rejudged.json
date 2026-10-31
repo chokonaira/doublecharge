@@ -1,5 +1,72 @@
 {
   "status": "not-confirmed",
   "detail": "every rule held",
+  "trace": [
+    {
+      "actor": "S",
+      "call": "payco.getCharge ch_1",
+      "result": "amount 1000, refunded 0"
+    },
+    {
+      "actor": "S",
+      "call": "db.transaction",
+      "result": "committed charge:ch_1={\"orderId\":\"o1\",\"amount\":1000,\"credited\":true,\"refunded\":0}, ordercharges:o1=[\"ch_1\"], balance:s1=1000, order:o1={\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"paid\"}"
+    },
+    {
+      "actor": "S",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"paid\"}"
+    },
+    {
+      "actor": "S",
+      "call": "db.get shipped:o1",
+      "result": "none"
+    },
+    {
+      "actor": "S",
+      "call": "shipping.ship o1 key=ship:o1",
+      "result": "timeout (never reached shipping)"
+    },
+    {
+      "actor": "S",
+      "call": "answer",
+      "result": "none: timeout"
+    },
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "payco.getCharge ch_1",
+      "result": "amount 1000, refunded 0"
+    },
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "db.transaction",
+      "result": "committed charge:ch_1={\"orderId\":\"o1\",\"amount\":1000,\"credited\":true,\"refunded\":0}"
+    },
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"paid\"}"
+    },
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "db.get shipped:o1",
+      "result": "none"
+    },
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "shipping.ship o1 key=ship:o1",
+      "result": "shipped"
+    },
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "db.set shipped:o1",
+      "result": "true"
+    },
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "answer",
+      "result": "done"
+    }
+  ],
   "schedules": 30
 }

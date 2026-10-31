@@ -27,6 +27,11 @@
       "actor": "A",
       "call": "payco.createPayout {\"amount\":3000,\"currency\":\"EUR\",\"destination\":\"u1\"} key=r1",
       "result": "payout_rejected"
+    },
+    {
+      "actor": "A",
+      "call": "answer",
+      "result": "rejected"
     }
   ]
 }

@@ -34,6 +34,11 @@
       "result": "right after the call above, before seeing its result"
     },
     {
+      "actor": "S",
+      "call": "answer",
+      "result": "none: the connection dropped"
+    },
+    {
       "actor": "S retry 1",
       "call": "db.get event:evt_succeeded",
       "result": "none"
@@ -67,6 +72,11 @@
       "actor": "S retry 1",
       "call": "db.set event:evt_succeeded",
       "result": "true"
+    },
+    {
+      "actor": "S retry 1",
+      "call": "answer",
+      "result": "done"
     }
   ]
 }

@@ -39,6 +39,11 @@
       "result": "true"
     },
     {
+      "actor": "S",
+      "call": "answer",
+      "result": "done"
+    },
+    {
       "actor": "R1",
       "call": "db.get event:evt_refund_300",
       "result": "none"
@@ -69,6 +74,11 @@
       "result": "true"
     },
     {
+      "actor": "R1",
+      "call": "answer",
+      "result": "done"
+    },
+    {
       "actor": "R2",
       "call": "db.get event:evt_refund_500",
       "result": "none"
@@ -97,6 +107,11 @@
       "actor": "R2",
       "call": "db.set event:evt_refund_500",
       "result": "true"
+    },
+    {
+      "actor": "R2",
+      "call": "answer",
+      "result": "done"
     }
   ]
 }

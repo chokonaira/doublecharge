@@ -19,6 +19,11 @@
       "result": "before this request's next call"
     },
     {
+      "actor": "A",
+      "call": "answer",
+      "result": "none: the connection dropped"
+    },
+    {
       "actor": "A retry 1",
       "call": "db.get withdrawal:r1",
       "result": "none"
@@ -37,6 +42,11 @@
       "actor": "A retry 1",
       "call": "db.set withdrawal:r1",
       "result": "\"paid_out\""
+    },
+    {
+      "actor": "A retry 1",
+      "call": "answer",
+      "result": "paid_out"
     }
   ]
 }

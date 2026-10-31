@@ -14,9 +14,19 @@
       "result": "right after the call above, before seeing its result"
     },
     {
+      "actor": "S",
+      "call": "answer",
+      "result": "none: the connection dropped"
+    },
+    {
       "actor": "evt_succeeded settle 1",
       "call": "db.insertIfAbsent event:evt_succeeded true",
       "result": "already present"
+    },
+    {
+      "actor": "evt_succeeded settle 1",
+      "call": "answer",
+      "result": "done"
     }
   ]
 }
