@@ -319,8 +319,34 @@ export interface Filters {
   outcome: string;
 }
 
+/** What a case shows: a rule broken or held, or a verdict a later grader withdrew, as the intro counts it. */
+export const outcomeOf = (e: Episode): "broken" | "held" | "withdrawn" => (e.overturned ? "withdrawn" : e.outcome);
+
 export const visibleIds = (episodes: Episode[], f: Filters): string[] =>
-  episodes.filter((e) => (!f.part || String(e.part) === f.part) && (!f.model || e.model === f.model) && (!f.outcome || e.outcome === f.outcome)).map((e) => e.id);
+  episodes.filter((e) => (!f.part || String(e.part) === f.part) && (!f.model || e.model === f.model) && (!f.outcome || outcomeOf(e) === f.outcome)).map((e) => e.id);
+
+export const NO_FILTERS: Filters = { part: "", model: "", outcome: "" };
+
+/** Each filter's choices as [value, label]; the empty value lifts the filter. */
+export const filterChoices = (episodes: Episode[]): Record<keyof Filters, [string, string][]> => ({
+  part: [["", "Both"], ["1", "Writing"], ["2", "Reviewing"]],
+  model: [
+    ["", "All"],
+    ...[...new Set(episodes.map((e) => e.model))].map((m): [string, string] => [m, nameOf(m)]).sort((a, b) => a[1].localeCompare(b[1])),
+  ],
+  outcome: [["", "Any"], ["broken", "Rule broken"], ["held", "Rule held"], ["withdrawn", "Withdrawn"]],
+});
+
+/** The case [ or ] moves to in a list; from a case the list does not hold, the first or the last. */
+export function stepCase(ids: string[], current: string, forward: boolean): string | undefined {
+  const at = ids.indexOf(current);
+  if (at < 0) return forward ? ids[0] : ids.at(-1);
+  return ids[(at + (forward ? 1 : -1) + ids.length) % ids.length];
+}
+
+/** How many cases a choice would list, with the other filters as they are. */
+export const choiceCount = (episodes: Episode[], f: Filters, key: keyof Filters, value: string): number =>
+  visibleIds(episodes, { ...f, [key]: value }).length;
 
 /** The case a page link names, if it names one: a bare #anchor, never a broken one. */
 export function caseFromHash(hash: string, ids: ReadonlySet<string>): string | undefined {

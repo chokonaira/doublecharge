@@ -11,18 +11,22 @@ import {
   buildLayout,
   caseFromHash,
   caseLabel,
+  choiceCount,
   codeOwner,
   describe as words,
+  filterChoices,
   intro,
   laneOf,
   ledger,
   ledgerTotal,
   money,
+  NO_FILTERS,
   prettyJson,
   resultWords,
   shortCall,
   shortResult,
   stampFor,
+  stepCase,
   subtitle,
   tone,
   visibleIds,
@@ -242,9 +246,28 @@ describe("layout and cases", () => {
   });
 
   it("filters cases, and opens only a case a link really names", () => {
-    const eps = [episode({ id: "a", part: 1 }), episode({ id: "b", outcome: "held" }), episode({ id: "c", model: "lab/n" })];
+    const eps = [episode({ id: "a", part: 1, model: "lab/z" }), episode({ id: "b", outcome: "held" }), episode({ id: "c", model: "lab/n" })];
     assert.deepEqual(visibleIds(eps, { part: "2", model: "", outcome: "" }), ["b", "c"]);
     assert.deepEqual(visibleIds(eps, { part: "", model: "lab/n", outcome: "broken" }), ["c"]);
+    // Models are offered by name: by id, m/zz would sit between Gemini and GPT.
+    const models = filterChoices([episode({ model: "openai/gpt-6-astra" }), episode({ model: "m/zz" }), episode({ model: "google/gemini-4-argon" })]).model;
+    assert.deepEqual(models.map(([, label]) => label), ["All", "Gemini 4 Argon", "GPT-6 Astra", "m/zz"]);
+    // A withdrawn verdict is its own outcome, not a rule broken, so the counts agree with the intro.
+    const withdrawn = episode({ id: "w", part: 1, overturned: "the grader was wrong" });
+    assert.deepEqual(visibleIds([...eps, withdrawn], { ...NO_FILTERS, outcome: "broken" }), ["a", "c"]);
+    assert.deepEqual(visibleIds([...eps, withdrawn], { ...NO_FILTERS, outcome: "withdrawn" }), ["w"]);
+    // A choice's count keeps the other filters: with Part 2 picked, "held" lists b alone.
+    const part2 = { ...NO_FILTERS, part: "2" };
+    assert.equal(choiceCount(eps, part2, "outcome", "held"), 1);
+    assert.equal(choiceCount(eps, part2, "outcome", ""), 2);
+    assert.equal(choiceCount(eps, part2, "part", "1"), 1);
+    assert.equal(choiceCount(eps, { ...part2, outcome: "held" }, "model", "lab/n"), 0);
+    assert.equal(stepCase(["a", "b", "c"], "c", true), "a");
+    assert.equal(stepCase(["a", "b", "c"], "a", false), "c");
+    // From a case the list does not hold, [ goes to the last case and ] to the first.
+    assert.equal(stepCase(["a", "b", "c"], "z", false), "c");
+    assert.equal(stepCase(["a", "b", "c"], "z", true), "a");
+    assert.equal(stepCase([], "z", true), undefined);
     const ids = new Set(["a", "b"]);
     assert.equal(caseFromHash("#a", ids), "a");
     assert.equal(caseFromHash("#zzz", ids), undefined);

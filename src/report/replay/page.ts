@@ -6,8 +6,10 @@ import {
   buildLayout,
   caseFromHash,
   caseLabel,
+  choiceCount,
   codeOwner,
   describe,
+  filterChoices,
   intro,
   laneOf,
   ledger,
@@ -18,10 +20,12 @@ import {
   shortCall,
   shortResult,
   stampFor,
+  stepCase,
   subtitle,
   tone,
   visibleIds,
   type Episode,
+  type Filters,
   type Layout,
   type ReplayData,
   type TraceEntry,
@@ -312,7 +316,10 @@ $("scrub", HTMLInputElement).addEventListener("input", (event) => {
 
 document.addEventListener("keydown", (event) => {
   const target = event.target as Element;
-  if (target.closest("input, select, textarea") || event.metaKey || event.ctrlKey || event.altKey) return;
+  // [ and ] also work from the rail's radios, and with Option or AltGr, which type them on German keyboards.
+  const caseKey = event.key === "[" || event.key === "]";
+  if (target.closest(caseKey ? "input:not([type=radio]), select, textarea" : "input, select, textarea")) return;
+  if (event.metaKey || (!caseKey && (event.ctrlKey || event.altKey))) return;
   if (event.key === " ") {
     if (target.closest("button, a, [role=tab]")) return;
     event.preventDefault();
@@ -322,10 +329,8 @@ document.addEventListener("keydown", (event) => {
   else if (event.key === "ArrowLeft") goTo(step - 1);
   else if (event.key === "Home") goTo(0);
   else if (event.key === "End") goTo(ep.trace.length);
-  else if (event.key === "]" || event.key === "[") {
-    const ids = visibleIds(DATA.episodes, filters());
-    const at = ids.indexOf(ep.id);
-    const next = ids[(at + (event.key === "]" ? 1 : -1) + ids.length) % ids.length];
+  else if (caseKey) {
+    const next = stepCase(listedIds(), ep.id, event.key === "]");
     if (next) openCase(next);
   }
 });
@@ -356,10 +361,49 @@ function caseButton(e: Episode, label: string, sub: string): HTMLLIElement {
   return el("li", {}, button);
 }
 
-const filters = () => ({ part: $("f-part", HTMLSelectElement).value, model: $("f-model", HTMLSelectElement).value, outcome: $("f-outcome", HTMLSelectElement).value });
+// The rail lists either the seven featured cases or every case; the filters narrow every case, and each
+// choice says how many cases it would list, so a choice that lists none is plain before it is picked.
+// The radios opt out of the browser's form restore: restored after this script has drawn the rail, they
+// would show one list while [ and ] stepped through another.
+type View = "start" | "all";
+const FILTER_KEYS = ["part", "model", "outcome"] as const;
+const rail = $("rail");
+const railHead = $("rail-head");
+const checkedValue = (name: string) => document.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)?.value ?? "";
+const view = (): View => (checkedValue("view") === "all" ? "all" : "start");
+const filters = (): Filters => ({ part: checkedValue("f-part"), model: checkedValue("f-model"), outcome: checkedValue("f-outcome") });
+/** The cases [ and ] step through: what the rail lists, or every case where a phone's picker stands in for it. */
+const listedIds = (): string[] =>
+  getComputedStyle(rail).display === "none"
+    ? DATA.episodes.map((e) => e.id)
+    : view() === "start"
+      ? DATA.featured.map((f) => f.id)
+      : visibleIds(DATA.episodes, filters());
+
+const choiceInputs = new Map<string, { input: HTMLInputElement; label: string; count: HTMLElement }>();
+for (const [key, choices] of Object.entries(filterChoices(DATA.episodes)) as [keyof Filters, [string, string][]][]) {
+  $(`f-${key}`).replaceChildren(
+    ...choices.map(([value, label]) => {
+      const input = el("input", { attrs: { type: "radio", name: `f-${key}`, value, autocomplete: "off" } });
+      input.checked = value === "";
+      const count = el("i", { attrs: { "aria-hidden": "true" } });
+      choiceInputs.set(`${key}=${value}`, { input, label, count });
+      return el("label", { className: "opt" }, input, el("span", {}, label, " ", count));
+    }),
+  );
+}
+
+/** Scrolls the rail to the open case, below the filters that stay on top of the list. */
+function revealCurrent(): void {
+  const button = document.querySelector<HTMLElement>(`#${view() === "all" ? "all" : "featured"} .case-btn[aria-current="true"]`);
+  const covered = getComputedStyle(railHead).position === "sticky" ? railHead.offsetHeight : 0;
+  rail.scrollTop = button ? button.offsetTop - covered - 8 : 0;
+}
 
 function drawList(): void {
-  const ids = visibleIds(DATA.episodes, filters());
+  const f = filters();
+  const ids = visibleIds(DATA.episodes, f);
+  const all = view() === "all";
   $("all").replaceChildren(
     ...ids.map((id) => {
       const e = byId.get(id)!;
@@ -367,13 +411,55 @@ function drawList(): void {
       return caseButton(e, label, sub);
     }),
   );
-  $("count").textContent = `${ids.length} of ${DATA.episodes.length} cases`;
+  for (const key of FILTER_KEYS) {
+    for (const [value] of filterChoices(DATA.episodes)[key]) {
+      const n = choiceCount(DATA.episodes, f, key, value);
+      const choice = choiceInputs.get(`${key}=${value}`)!;
+      choice.count.textContent = String(n);
+      choice.input.setAttribute("aria-label", `${choice.label}, ${n} ${n === 1 ? "case" : "cases"}`);
+      choice.input.closest("label")!.classList.toggle("empty", n === 0);
+    }
+  }
+  const narrowed = FILTER_KEYS.some((key) => f[key] !== "");
+  $("count").textContent = narrowed ? `${ids.length} of ${DATA.episodes.length} cases` : `All ${DATA.episodes.length} cases`;
+  $("clear").hidden = !narrowed;
+  $("featured").hidden = all;
+  $("note-start").hidden = all;
+  $("facets").hidden = !all;
+  $("all").hidden = !all;
+  $("none").hidden = !all || ids.length > 0;
   for (const button of document.querySelectorAll<HTMLButtonElement>(".case-btn")) button.setAttribute("aria-current", String(button.dataset.id === ep.id));
+  fitScrollPadding();
 }
 
+/** A case reached by Tab stops below the filters, not under them; on a short screen they scroll away instead. */
+function fitScrollPadding(): void {
+  rail.style.scrollPaddingTop = getComputedStyle(railHead).position === "sticky" ? `${railHead.offsetHeight + 8}px` : "";
+}
+addEventListener("resize", fitScrollPadding);
+
 $("featured").replaceChildren(...DATA.featured.map((f) => caseButton(byId.get(f.id)!, f.title, subtitle(byId.get(f.id)!))));
-$("f-model").append(...[...new Set(DATA.episodes.map((e) => e.model))].map((m) => el("option", { text: nameOf(m), attrs: { value: m } })));
-for (const id of ["f-part", "f-model", "f-outcome"]) $(id).addEventListener("change", drawList);
+$("n-start").textContent = String(DATA.featured.length);
+$("n-all").textContent = String(DATA.episodes.length);
+
+// A radio picked with the mouse gives its focus back, so the arrow keys go on stepping the trace rather than
+// flipping the filter; picked from the keyboard, it keeps focus, as a radio should.
+let pickedByPointer = false;
+railHead.addEventListener("pointerdown", () => (pickedByPointer = true));
+railHead.addEventListener("keydown", () => (pickedByPointer = false));
+railHead.addEventListener("change", (event) => {
+  drawList();
+  // A new list starts at its top; a switch of view starts at the open case, if the list holds it.
+  if ((event.target as HTMLInputElement).name === "view") revealCurrent();
+  else rail.scrollTop = 0;
+  if (pickedByPointer) (event.target as HTMLInputElement).blur();
+});
+$("clear").addEventListener("click", () => {
+  for (const key of FILTER_KEYS) choiceInputs.get(`${key}=`)!.input.checked = true;
+  drawList();
+  rail.scrollTop = 0;
+  choiceInputs.get("part=")!.input.focus();
+});
 drawList();
 
 // On a phone, one picker with the featured cases first.
@@ -413,7 +499,12 @@ $("foot").replaceChildren(
 // The first case opens complete, so the page reads at a glance; then, unless the viewer prefers less
 // motion, it plays from the start once, so nobody has to find the Play button to see what it does.
 const first = caseFromHash(location.hash, new Set(byId.keys())) ?? DATA.featured[0]!.id;
+if (!featured.has(first)) {
+  document.querySelector<HTMLInputElement>('input[name="view"][value="all"]')!.checked = true;
+  drawList();
+}
 openCase(first, { play: false });
+revealCurrent();
 if (!reduced) {
   setTimeout(() => {
     if (ep.id === first && !playing() && step === ep.trace.length) {
