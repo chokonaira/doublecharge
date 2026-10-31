@@ -284,6 +284,43 @@ describe("traces", () => {
     }
   });
 
+  it("record what each request answered, or that it gave none", async () => {
+    beginRun();
+    const trace = startTrace();
+    try {
+      await asActor("A", async () => "paid");
+      await asActor("B", async () => {
+        throw new InstanceCrashed("instance was killed mid-request");
+      }).catch(() => {});
+      await asActor("C", async () => ({ status: "ok" }));
+      assert.deepEqual(
+        trace.map((t) => `${t.actor} ${t.call}: ${t.result}`),
+        ["A answer: paid", "B answer: none: the connection dropped", 'C answer: {"status":"ok"}'],
+      );
+    } finally {
+      stopTrace();
+    }
+  });
+
+  it("record an answer without delaying whoever awaits it", async () => {
+    // Awaiting a traced request takes exactly as many turns as awaiting an untraced one.
+    const turns = async (fn: () => Promise<unknown>) => {
+      let ticks = 0;
+      let done = false;
+      const counter = (async () => {
+        while (!done) {
+          await null;
+          ticks++;
+        }
+      })();
+      await fn();
+      done = true;
+      await counter;
+      return ticks;
+    };
+    assert.equal(await turns(() => asActor("A", async () => 1)), await turns(async () => 1));
+  });
+
   it("leave out calls from a request left over from an earlier run", async () => {
     beginRun();
     let resume!: () => void;

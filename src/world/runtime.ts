@@ -39,9 +39,26 @@ function keep(entry: TraceEntry): void {
   else if (trace.length === TRACE_LIMIT) trace.push({ actor: "grader", call: "trace cut", result: `only the first ${TRACE_LIMIT} calls are kept` });
 }
 
-/** Runs fn with every world call it makes attributed to `name` in traces. */
+/**
+ * Runs fn with every world call it makes attributed to `name` in traces, and traces what the request
+ * answered (or that it gave no answer). The answer is recorded by a handler of its own on the request's
+ * promise: it queues nothing and delays no one, so it cannot change the order anything runs in.
+ */
 export function asActor<T>(name: string, fn: () => T): T {
-  return actors.run(name, fn);
+  return actors.run(name, () => {
+    const result = fn();
+    if (result instanceof Promise) {
+      const run = epoch;
+      const answer = (text: string) => {
+        if (run === epoch) keep({ actor: name, call: "answer", result: text });
+      };
+      result.then(
+        (value: unknown) => answer(typeof value === "string" ? value : value === undefined ? "done" : show(value)),
+        (error: unknown) => answer(error instanceof InstanceCrashed ? "none: the connection dropped" : `none: ${error instanceof Error ? error.message : String(error)}`),
+      );
+    }
+    return result;
+  });
 }
 
 /** The request the current code runs for, as named by asActor. */
