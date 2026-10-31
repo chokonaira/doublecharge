@@ -24,6 +24,7 @@ export {
   setRetryDelay,
   show,
   startTrace,
+  TRACE_LIMIT,
   stopTrace,
   tick,
   timeMoved,

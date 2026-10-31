@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { passHatK, rateWithInterval, wilson } from "../src/report/stats.ts";
+import { passHatK, percent, rateWithInterval, wilson } from "../src/report/stats.ts";
 
 const near = (actual: number, expected: number) => assert.ok(Math.abs(actual - expected) < 0.001, `${actual} is not ${expected}`);
 
@@ -26,6 +26,16 @@ describe("wilson", () => {
   });
 });
 
+describe("percent", () => {
+  it("never shows a near miss as 100% or a rare success as 0%", () => {
+    assert.equal(percent(249 / 250), "99%");
+    assert.equal(percent(1 / 250), "1%");
+    assert.equal(percent(1), "100%");
+    assert.equal(percent(0), "0%");
+    assert.equal(percent(2 / 3), "67%");
+  });
+});
+
 describe("passHatK", () => {
   const tasks = [
     { trials: 3, successes: 3 },
@@ -42,5 +52,6 @@ describe("passHatK", () => {
   it("leaves out tasks with fewer than k trials", () => {
     near(passHatK([{ trials: 3, successes: 3 }, { trials: 1, successes: 0 }], 3)!, 1);
     assert.equal(passHatK([{ trials: 2, successes: 2 }], 3), undefined);
+    assert.equal(passHatK([{ trials: 0, successes: 0 }], 0), undefined);
   });
 });

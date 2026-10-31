@@ -90,7 +90,8 @@ describe("review summary", () => {
       ],
       ["lab/m"],
     );
-    assert.match(out, /### Across 2 trials[^\n]*\n[^\n]*\n[^\n]*\n\| m \| 2\/3 \(67%\) \| 1\/2 \(50%\) \|/);
+    // "half" had no verdict in its second trial: that differs from SAFE, and a buggy sample in its place would not be proven.
+    assert.match(out, /### Across 2 trials[^\n]*\n[^\n]*\n[^\n]*\n\| m \| 2\/4 \(50%\) \| 1\/2 \(50%\) \|/);
   });
 });
 

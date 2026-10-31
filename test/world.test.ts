@@ -1,7 +1,26 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { AsyncLocalStorage } from "node:async_hooks";
-import { asActor, asInstanceLoad, asInvocation, beginRun, callMatcher, callsSincePlan, crashOnce, errorCode, InstanceCrashed, MemoryDb, pauseOnce, PayCo, planCrash, Shipping } from "../src/world/index.ts";
+import {
+  asActor,
+  asInstanceLoad,
+  asInvocation,
+  beginRun,
+  callMatcher,
+  callsSincePlan,
+  crashOnce,
+  errorCode,
+  InstanceCrashed,
+  MemoryDb,
+  pauseOnce,
+  PayCo,
+  planCrash,
+  record,
+  Shipping,
+  startTrace,
+  stopTrace,
+  TRACE_LIMIT,
+} from "../src/world/index.ts";
 
 const charge = { amount: 500, currency: "EUR", customerId: "cus_1" };
 
@@ -250,5 +269,40 @@ describe("instance crashes", () => {
     await assert.rejects(send(), InstanceCrashed);
     assert.equal(shipping.count("o1"), 1, "the second call ships, then its instance dies");
     beginRun();
+  });
+});
+
+describe("traces", () => {
+  it("keep the first calls of a run that makes thousands, and say they were cut", () => {
+    const trace = startTrace();
+    try {
+      for (let i = 0; i < TRACE_LIMIT + 100; i++) record(`db.get k${i}`, "none");
+      assert.equal(trace.length, TRACE_LIMIT + 1);
+      assert.equal(trace.at(-1)?.call, "trace cut");
+    } finally {
+      stopTrace();
+    }
+  });
+
+  it("leave out calls from a request left over from an earlier run", async () => {
+    beginRun();
+    let resume!: () => void;
+    const leftover = asInvocation(async () => {
+      await new Promise<void>((resolve) => (resume = resolve));
+      record("db.get late", "none");
+    });
+    const trace = startTrace();
+    try {
+      beginRun();
+      await asInvocation(async () => record("db.get now", "none"));
+      resume();
+      await leftover;
+      assert.deepEqual(
+        trace.map((t) => t.call),
+        ["db.get now"],
+      );
+    } finally {
+      stopTrace();
+    }
   });
 });

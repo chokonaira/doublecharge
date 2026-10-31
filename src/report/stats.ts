@@ -21,12 +21,17 @@ const choose = (n: number, k: number): number => {
  * Tasks with fewer than k graded trials are left out; undefined when none are left.
  */
 export function passHatK(tasks: { trials: number; successes: number }[], k: number): number | undefined {
+  if (k < 1) return undefined;
   const usable = tasks.filter((t) => t.trials >= k);
   if (usable.length === 0) return undefined;
   return usable.reduce((sum, t) => sum + choose(t.successes, k) / choose(t.trials, k), 0) / usable.length;
 }
 
-export const percent = (x: number) => `${Math.round(100 * x)}%`;
+/** A whole percentage that never rounds a near miss up to 100% or a rare success down to 0%. */
+export function percent(x: number): string {
+  const rounded = Math.round(100 * x);
+  return `${x < 1 && rounded === 100 ? 99 : x > 0 && rounded === 0 ? 1 : rounded}%`;
+}
 
 /** "12/15 (80%, 95% CI 55-93%)" */
 export function rateWithInterval(successes: number, trials: number): string {

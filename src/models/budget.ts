@@ -29,11 +29,11 @@ export class Budget {
     return true;
   }
 
-  /** Awaits a call begun after start() returned true, and counts what it cost. */
-  async track<T extends { cost: number }>(call: Promise<T>): Promise<T> {
+  /** Makes the call start() made room for, and counts what it cost. Its slot is freed however it ends. */
+  async track<T extends { cost: number }>(call: () => Promise<T>): Promise<T> {
     let cost: number | undefined;
     try {
-      const result = await call;
+      const result = await call();
       cost = result.cost;
       return result;
     } finally {

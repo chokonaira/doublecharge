@@ -10,7 +10,7 @@ async function pool(budget: Budget, costs: number[], concurrency: number): Promi
     Array.from({ length: concurrency }, async () => {
       for (let i = next++; i < costs.length; i = next++) {
         if (!(await budget.start())) continue;
-        await budget.track(new Promise<{ cost: number }>((resolve) => setImmediate(() => resolve({ cost: costs[i]! }))));
+        await budget.track(() => new Promise<{ cost: number }>((resolve) => setImmediate(() => resolve({ cost: costs[i]! }))));
         ran.push(i);
       }
     }),
@@ -36,7 +36,21 @@ describe("budget", () => {
   it("frees the slot of a call that failed", async () => {
     const budget = new Budget(0.4);
     assert.ok(await budget.start());
-    await assert.rejects(budget.track(Promise.reject(new Error("network"))));
+    await assert.rejects(budget.track(() => Promise.reject(new Error("network"))));
+    assert.ok(await budget.start());
+  });
+
+  it("frees the slot of a call that throws before it is sent", async () => {
+    const budget = new Budget(1);
+    assert.ok(await budget.start());
+    await assert.rejects(
+      budget.track(() => {
+        throw new Error("bad request");
+      }),
+    );
+    // A leaked slot would hold 0.5 against a limit of 1 forever, and the next waits would never end.
+    assert.ok(await budget.start());
+    await budget.track(async () => ({ cost: 0.6 }));
     assert.ok(await budget.start());
   });
 });
