@@ -19,7 +19,8 @@
     "regrade": "node --no-warnings src/cli/regrade.ts",
     "check": "npm run typecheck && npm test && npm run audit",
     "review": "node --no-warnings src/cli/review.ts",
-    "rejudge": "node --no-warnings src/cli/rejudge.ts"
+    "rejudge": "node --no-warnings src/cli/rejudge.ts",
+    "atlas": "node --no-warnings src/cli/atlas.ts"
   },
   "devDependencies": {
     "@types/node": "^25.9.9",
