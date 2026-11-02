@@ -6,8 +6,8 @@
 <title>DoubleCharge failure atlas</title>
 <style>
 :root {
-  --paper: #eef3f1;
-  --sheet: #f8fbfa;
+  --paper: #f7f9f8;
+  --sheet: #ffffff;
   --ink: #14233d;
   --muted: #56667a;
   --rule: #b9cad6;
@@ -25,26 +25,9 @@
   --serif: "Iowan Old Style", "Charter", "Palatino Linotype", Georgia, serif;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #0f1a24;
-    --sheet: #142231;
-    --ink: #e6edf3;
-    --muted: #9fb0c2;
-    --rule: #2c4052;
-    --faint: #1d2e3e;
-    --stamp: #ff7468;
-    --stamp-wash: #3a1d1f;
-    --ok: #74c69d;
-    --ok-wash: #16302a;
-    --warn: #e9b44c;
-    --warn-wash: #33291a;
-    --lane-a: #8db4f0;
-    --lane-b: #d1a3e8;
-    --lane-c: #74d1d1;
-    --lane-d: #e9b06a;
-  }
+  /* Light whatever the system prefers, like the Replay; a double tap does not zoom the page. */
+  color-scheme: light;
+  touch-action: manipulation;
 }
 * { box-sizing: border-box; }
 html { background: var(--paper); }
@@ -89,7 +72,6 @@ code, pre, .mono { font-family: var(--mono); font-size: 0.86rem; }
   padding: 2px 12px; transform: rotate(-8deg);
   mix-blend-mode: multiply; opacity: 0.92;
 }
-@media (prefers-color-scheme: dark) { .stamp { mix-blend-mode: normal; } }
 @media (prefers-reduced-motion: no-preference) {
   .line.again { animation: print 700ms 500ms both steps(18, end); clip-path: inset(0 100% 0 0); }
   .stamp { animation: land 260ms 1350ms both cubic-bezier(.2, 1.6, .5, 1); }
@@ -148,6 +130,8 @@ pre.code { background: var(--paper); border: 1px solid var(--faint); border-radi
 .filters { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; align-items: center; }
 .filters label { color: var(--muted); font-size: 0.9rem; }
 select { font: inherit; padding: 4px 8px; border: 1px solid var(--rule); border-radius: 3px; background: var(--sheet); color: var(--ink); }
+/* On a touch screen, opening a picker does not zoom the page. */
+@media (pointer: coarse) { select { font-size: max(16px, 1em); } }
 .review { padding: 14px 0; border-top: 1px solid var(--faint); }
 .review .head { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; }
 .review .sample { font-family: var(--mono); font-size: 0.9rem; }

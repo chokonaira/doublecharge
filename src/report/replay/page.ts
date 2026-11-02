@@ -632,6 +632,31 @@ $("pick").replaceChildren(
 );
 $("pick", HTMLSelectElement).addEventListener("change", (event) => openCase((event.target as HTMLSelectElement).value));
 
+// ---- Light or dark -------------------------------------------------------------------------------------
+
+// Light by default, whatever the system prefers; a viewer who switches to dark keeps it on the next visit.
+const THEME_KEY = "doublecharge-replay-theme";
+function setTheme(dark: boolean, { save = false }: { save?: boolean } = {}): void {
+  if (dark) document.documentElement.dataset.theme = "dark";
+  else delete document.documentElement.dataset.theme;
+  $("b-theme").setAttribute("aria-pressed", String(dark));
+  if (!save) return;
+  try {
+    if (dark) localStorage.setItem(THEME_KEY, "dark");
+    else localStorage.removeItem(THEME_KEY);
+  } catch {
+    // No storage: the choice lasts until the page is closed.
+  }
+}
+let savedDark = false;
+try {
+  savedDark = localStorage.getItem(THEME_KEY) === "dark";
+} catch {
+  // As above.
+}
+setTheme(savedDark);
+$("b-theme").addEventListener("click", () => setTheme(document.documentElement.dataset.theme !== "dark", { save: true }));
+
 // ---- On a phone, the player as a sheet ----------------------------------------------------------------
 
 // The page's own controls, diagram, total and stamp move into the sheet while it is open and back when it

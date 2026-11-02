@@ -7,12 +7,12 @@
 /* Layout: a rail of cases on the left, with its filters on top; the stage plays one case as a sequence diagram, with the card
    statement and the verdict beside it, transport below. Paper, ink and a rubber stamp, like the atlas. */
 :root {
-  --paper: #eef3f1;
-  --sheet: #fbfdfc;
+  --paper: #f7f9f8;
+  --sheet: #ffffff;
   --ink: #14233d;
   --muted: #56667a;
-  --rule: #c4d3dd;
-  --faint: #e3ebf0;
+  --rule: #d2dde4;
+  --faint: #e8eef1;
   --stamp: #b3261e;
   --stamp-wash: #f6dcd9;
   --ok: #2e6b4f;
@@ -28,15 +28,11 @@
   --text: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --row: 50px;
+  color-scheme: light;
+  /* A double tap does not zoom the page; pinching still does, for anyone who needs it larger. */
+  touch-action: manipulation;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #0f1a24; --sheet: #142231; --ink: #e6edf3; --muted: #9fb0c2; --rule: #2c4052; --faint: #1b2b3a;
-    --stamp: #ff7468; --stamp-wash: #3a1d1f; --ok: #74c69d; --ok-wash: #16302a; --warn: #e9b44c;
-    --lane-1: #8db4f0; --lane-2: #d1a3e8; --lane-3: #74d1d1; --lane-4: #e9b06a; --lane-5: #f09ab8; --lane-6: #a9d27a;
-    color-scheme: dark;
-  }
-}
+/* Light whatever the system prefers; the viewer can switch to dark, and the page remembers. */
 :root[data-theme="dark"] {
   --paper: #0f1a24; --sheet: #142231; --ink: #e6edf3; --muted: #9fb0c2; --rule: #2c4052; --faint: #1b2b3a;
   --stamp: #ff7468; --stamp-wash: #3a1d1f; --ok: #74c69d; --ok-wash: #16302a; --warn: #e9b44c;
@@ -63,6 +59,9 @@ code, pre, .mono { font-family: var(--mono); }
 .top h1 { font-size: clamp(1.7rem, 3vw, 2.3rem); letter-spacing: -0.01em; }
 .top h1 span { color: var(--stamp); }
 .top p { margin: 0; color: var(--muted); max-width: 80ch; }
+.theme { margin-left: auto; align-self: center; border: 1px solid var(--rule); background: var(--sheet); color: var(--muted); border-radius: 999px; padding: 4px 12px; font-size: 0.82rem; cursor: pointer; }
+.theme:hover { color: var(--ink); border-color: var(--ink); }
+.theme[aria-pressed="true"] { color: var(--ink); }
 
 .layout { display: grid; grid-template-columns: var(--rail-w, 320px) 12px minmax(0, 1fr); gap: 28px 8px; margin-top: 24px; align-items: start; }
 
@@ -294,6 +293,10 @@ code, pre, .mono { font-family: var(--mono); }
 @keyframes rise { from { transform: translateY(100%); } to { transform: none; } }
 /* The page behind the open sheet does not scroll. */
 :root:has(.player[open]) { overflow: hidden; }
+/* On a touch screen, text in a picker is never smaller than 16px, so opening one does not zoom the page. */
+@media (pointer: coarse) {
+  select, input, textarea { font-size: max(16px, 1em); }
+}
 /* On a phone, the call names get smaller type so more of each fits its lane. */
 @media (max-width: 600px) {
   .lane-head { font-size: 0.72rem; padding-inline: 2px; }
@@ -344,6 +347,7 @@ code, pre, .mono { font-family: var(--mono); }
   <header class="top">
     <h1>DoubleCharge <span>Replay</span></h1>
     <p id="intro">Every failure and every reviewer’s attack that ran in the final runs, played back call by call from the grader’s own traces.</p>
+    <button type="button" class="theme" id="b-theme" aria-pressed="false">Dark mode</button>
   </header>
 
   <div class="layout">
