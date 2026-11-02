@@ -47,9 +47,19 @@ describe("fill", () => {
     const main = run({ maxTokens: 100 }, [trial(1, "skipped")]);
     assert.throws(() => fillRun(main, [run({ maxTokens: 100, commit: "def5678" }, [trial(1, "pass")])], render), /same commit and settings/);
     assert.throws(() => fillRun(main, [run({ maxTokens: 200 }, [trial(1, "pass")])], render), /same commit and settings/);
+    assert.throws(() => fillRun(main, [run({ maxTokens: 100, promptVariant: "ordinary" }, [trial(1, "pass")])], render), /same commit and settings/);
     const fill = run({ maxTokens: 100 }, [trial(1, "pass")]);
     fillRun(main, [fill], render);
     assert.throws(() => fillRun(main, [fill], render), /already merged/);
+  });
+
+  it("counts a run from before prompt variants as warned", () => {
+    const main = run({ maxTokens: 100 }, [trial(1, "skipped")]);
+    assert.deepEqual(fillRun(main, [run({ maxTokens: 100, promptVariant: "warned" }, [trial(1, "pass")])], render).replaced, 1);
+    const ordinary = run({ maxTokens: 100, promptVariant: "ordinary" }, [trial(1, "skipped")]);
+    assert.deepEqual(fillRun(ordinary, [run({ maxTokens: 100, promptVariant: "ordinary" }, [trial(1, "pass")])], render).replaced, 1);
+    const another = run({ maxTokens: 100, promptVariant: "ordinary" }, [trial(1, "skipped")]);
+    assert.throws(() => fillRun(another, [run({ maxTokens: 100 }, [trial(1, "pass")])], render), /same commit and settings/);
   });
 
   it("in a review run, replaces calls the API turned away, and gives older ones an error field", () => {

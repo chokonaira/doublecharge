@@ -20,6 +20,8 @@ export interface ScenarioSpec<F extends EntryFn> {
    * retry, so that a correct solution can always recover and reach the same outcome.
    */
   crash?: boolean;
+  /** The scenario itself kills an instance. Only the warned runtime docs say that can happen. */
+  kills?: boolean;
   run(entry: F): Promise<Outcome>;
 }
 
@@ -41,6 +43,7 @@ export interface TaskSpec<F extends EntryFn> {
 export interface Scenario {
   name: string;
   crash: boolean;
+  kills?: boolean;
   run(load: Loader): Promise<Outcome>;
 }
 
@@ -79,6 +82,7 @@ export function defineTask<F extends EntryFn>(spec: TaskSpec<F>): Task {
     scenarios: spec.scenarios.map((s) => ({
       name: s.name,
       crash: s.crash === true && spec.instancePerCall,
+      ...(s.kills ? { kills: true } : {}),
       run: async (load) => s.run(spec.instancePerCall ? perCall(load) : entryOf<F>(await load(), spec.entry)),
     })),
   };

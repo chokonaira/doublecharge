@@ -7,13 +7,15 @@ import { TASKS } from "../../tasks/index.ts";
 import { fillRun } from "../report/fill.ts";
 import type { TrialRecord } from "../report/records.ts";
 import { renderSummary } from "../report/summary.ts";
+import { promptVariant } from "../tasks/helpers.ts";
 import type { ReviewRecord } from "../review/records.ts";
 import { renderReviewSummary } from "../review/summary.ts";
 
 const [runDir, ...fillDirs] = process.argv.slice(2);
 if (!runDir || fillDirs.length === 0) throw new Error("usage: npm run fill -- <run> <fill run> [more fill runs]");
 
-const review = (JSON.parse(readFileSync(join(runDir, "manifest.json"), "utf8")) as { samples?: string[] }).samples !== undefined;
+const manifest = JSON.parse(readFileSync(join(runDir, "manifest.json"), "utf8")) as { samples?: string[]; promptVariant?: string };
+const review = manifest.samples !== undefined;
 const render = review
   ? (records: unknown[], models: string[]) => renderReviewSummary(records as ReviewRecord[], models)
   : (records: unknown[], models: string[]) =>
@@ -21,6 +23,7 @@ const render = review
         records as TrialRecord[],
         models,
         TASKS.filter((t) => (records as TrialRecord[]).some((r) => r.task === t.id)),
+        promptVariant(manifest.promptVariant),
       );
 
 const result = fillRun(runDir, fillDirs, render);
