@@ -5,7 +5,7 @@ import { join, relative } from "node:path";
 import { describe, it } from "node:test";
 
 const ROOT = join(import.meta.dirname, "..");
-/** The files that ship: those git tracks, or in an unpacked submission zip (no .git), every file there. */
+/** The files that ship: those git tracks, or in an unpacked source archive (no .git), every file there. */
 function shipped(): string[] {
   try {
     return execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).split("\n").filter(Boolean);

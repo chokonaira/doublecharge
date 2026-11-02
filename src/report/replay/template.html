@@ -62,9 +62,18 @@ code, pre, .mono { font-family: var(--mono); }
 .top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
 .top h1 { font-size: clamp(1.7rem, 3vw, 2.3rem); letter-spacing: -0.01em; }
 .top h1 span { color: var(--stamp); }
-.top p { margin: 0; color: var(--muted); max-width: 62ch; }
+.top p { margin: 0; color: var(--muted); max-width: 80ch; }
 
-.layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 28px; margin-top: 24px; align-items: start; }
+.layout { display: grid; grid-template-columns: var(--rail-w, 320px) 12px minmax(0, 1fr); gap: 28px 8px; margin-top: 24px; align-items: start; }
+
+/* The edge between the rail and the stage: drag it, or focus it and use the arrow keys, to set the rail's
+   width; double-click or Enter puts it back. The stage always keeps room for the diagram. */
+.rail-resize { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); height: calc(100vh - 32px); display: grid; justify-items: center; cursor: col-resize; touch-action: none; border-radius: 6px; }
+.rail-resize::before { content: ""; width: 1px; height: 100%; background: var(--rule); }
+.rail-resize::after { content: ""; position: absolute; top: 50%; width: 6px; height: 32px; margin-top: -16px; border: 1px solid var(--rule); border-radius: 3px; background: var(--sheet); }
+.rail-resize:hover::before, .rail-resize:focus-visible::before, .rail-resize.dragging::before { width: 2px; background: var(--lane-1); }
+.rail-resize:hover::after, .rail-resize:focus-visible::after, .rail-resize.dragging::after { border-color: var(--lane-1); }
+.resizing, .resizing * { cursor: col-resize !important; user-select: none; }
 
 /* The rail: a switch between the seven featured cases and every case, with the filters for every case
    held at the top while the list scrolls under them. */
@@ -93,6 +102,15 @@ code, pre, .mono { font-family: var(--mono); }
 .none { color: var(--muted); font-size: 0.88rem; margin: 4px 0 0; }
 /* On a short screen the filters would cover the list they filter, so they scroll away with it. */
 @media (max-height: 700px) { .rail-head { position: static; } }
+/* A short laptop screen spends less of its height above the case, so more of the run fits in the first screen. */
+@media (max-height: 820px) and (min-width: 861px) {
+  .app { padding-top: 14px; }
+  .top { padding-bottom: 12px; }
+  .top p { font-size: 0.88rem; }
+  .layout { margin-top: 14px; }
+  .stage { gap: 12px; }
+  .case-head .caption { font-size: 0.95rem; }
+}
 @media (forced-colors: active) {
   .view input:checked + span, .opt input:checked + span { forced-color-adjust: none; background: Highlight; color: HighlightText; border-color: Highlight; }
 }
@@ -110,8 +128,32 @@ code, pre, .mono { font-family: var(--mono); }
 .mobile-pick { display: none; }
 
 /* The stage */
-.stage { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
-.stage > * { min-width: 0; }
+/* On a wide stage the case plays in the first screen: the title, controls and diagram on the left, and
+   the case file on the right (claim, evidence, ruling, statement, verdict). On a narrow one everything
+   is one column, in reading order. */
+.stage { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; container-type: inline-size; }
+.stage > *, .stage-grid > *, .stage-main > *, .stage-side > * { min-width: 0; }
+.stage-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.stage-main, .stage-side { display: contents; }
+.case-head { order: 1; }
+.court { order: 2; }
+.transport { order: 3; }
+.narration { order: 4; }
+#stage-sheet { order: 5; }
+.keys { order: 6; }
+.side { order: 7; }
+@container (min-width: 860px) {
+  .stage-grid { grid-template-columns: minmax(0, 1fr) 290px; align-items: start; }
+  .stage-main { display: grid; gap: 18px; align-content: start; }
+  .stage-side { display: grid; gap: 14px; align-content: start; }
+  .stage-side .court { grid-template-columns: minmax(0, 1fr); }
+  .stage-side .court > div + div { border-left: 0; border-top: 1px solid var(--rule); }
+  .stage-side .side { grid-template-columns: minmax(0, 1fr); }
+  /* The claim in the reviewer's own words, held to five lines; the whole of it is its tooltip, and what a screen reader reads. */
+  .stage-side .court q { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; line-clamp: 5; overflow: hidden; }
+  /* Two lines whatever the step says, so the diagram below never moves while a case plays. */
+  .narration { height: 3.1em; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+}
 .case-head { display: grid; gap: 8px; }
 .case-head h2 { font-size: clamp(1.5rem, 2.6vw, 2.05rem); }
 .case-head .caption { margin: 0; max-width: 72ch; font-size: 1.02rem; }
@@ -128,7 +170,6 @@ code, pre, .mono { font-family: var(--mono); }
 .court .v.broken { color: var(--stamp); }
 .court .v.held { color: var(--ok); }
 
-.stage-grid { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 18px; align-items: start; }
 .sheet { background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; position: relative; }
 
 /* Sequence diagram */
@@ -173,7 +214,7 @@ code, pre, .mono { font-family: var(--mono); }
 @keyframes pop { from { transform: scale(2.2); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* Statement and verdict */
-.side { display: grid; gap: 14px; }
+.side { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 .statement { padding: 16px 16px 14px; }
 .statement h3 { font-size: 1.02rem; }
 .statement .sub { color: var(--muted); font-size: 0.8rem; margin: 0 0 10px; }
@@ -190,7 +231,7 @@ code, pre, .mono { font-family: var(--mono); }
 .total { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; padding-top: 8px; border-top: 2px solid var(--ink); font-family: var(--mono); font-size: 0.84rem; font-variant-numeric: tabular-nums; }
 .total.bad { color: var(--stamp); border-top-color: var(--stamp); }
 
-.verdict { padding: 18px 16px 16px; min-height: 150px; display: grid; gap: 10px; align-content: start; overflow: hidden; }
+.verdict { padding: 16px 16px 14px; min-height: 132px; display: grid; gap: 10px; align-content: start; overflow: hidden; }
 .verdict .k { color: var(--muted); font-size: 0.8rem; }
 .stamp {
   justify-self: start; transform: rotate(-6deg); margin: 6px 0 4px 4px;
@@ -212,17 +253,64 @@ code, pre, .mono { font-family: var(--mono); }
 @keyframes shake { 0%, 100% { transform: none; } 30% { transform: translate(2px, 1px); } 60% { transform: translate(-2px, -1px); } }
 
 /* Transport */
-.transport { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.transport { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
 .transport button { border: 1px solid var(--rule); background: var(--sheet); border-radius: 6px; padding: 6px 12px; cursor: pointer; min-height: 36px; }
 .transport button:hover { border-color: var(--ink); }
 .transport .play { background: var(--ink); color: var(--paper); border-color: var(--ink); font-weight: 600; min-width: 96px; }
-.transport input[type="range"] { flex: 1 1 180px; min-width: 120px; accent-color: var(--stamp); }
+.transport input[type="range"] { flex: 1 1 120px; min-width: 80px; accent-color: var(--stamp); }
 .transport select { border: 1px solid var(--rule); background: var(--sheet); border-radius: 6px; padding: 5px 6px; }
 .step-count { font-family: var(--mono); font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-.narration { margin: 0; min-height: 3em; font-size: 1.05rem; max-width: 80ch; }
+.narration { margin: 0; min-height: 3.1em; font-size: 1.05rem; max-width: 80ch; }
 .narration b { font-weight: 600; }
 .keys { color: var(--muted); font-size: 0.8rem; margin: 0; }
 .keys kbd { font-family: var(--mono); font-size: 0.74rem; border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--sheet); }
+
+/* On a phone the player opens as a sheet from the bottom, so the run and the money it moves share one
+   screen: the controls, the narration, the diagram, and the statement's total with the verdict below. */
+.watch { display: none; }
+.player { position: fixed; inset: auto 0 0; width: 100%; max-width: 100%; height: 92vh; height: min(92svh, 860px); max-height: none; margin: 0; padding: 0 max(16px, env(safe-area-inset-right, 0px)) max(12px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); border: 0; border-radius: 16px 16px 0 0; background: var(--paper); color: var(--ink); box-shadow: 0 -10px 40px rgb(0 0 0 / 0.28); flex-direction: column; gap: 10px; overflow: hidden; }
+.player[open] { display: flex; }
+.player { transition: transform 180ms ease-out; }
+.player::backdrop { background: rgb(8 16 26 / 0.5); }
+.player-head { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding-top: 8px; touch-action: none; cursor: grab; }
+.player-grab { grid-column: 1 / -1; justify-self: center; width: 44px; height: 5px; border-radius: 3px; background: var(--rule); }
+.player-head h2 { font-size: 1.12rem; }
+.player-close { border: 1px solid var(--rule); background: var(--sheet); border-radius: 999px; width: 40px; height: 40px; font-size: 1rem; cursor: pointer; }
+.player-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.player-body #stage-sheet { flex: 1; min-height: 0; display: flex; }
+.player-body .diagram-scroll { flex: 1; height: auto !important; max-height: none; }
+.player-body #b-start, .player-body #b-end { display: none; }
+.player-body .narration { height: 3.1em; min-height: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; font-size: 0.98rem; }
+.player-money { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; border-top: 1px solid var(--rule); padding-top: 10px; }
+.player-money .k { grid-column: 1; color: var(--muted); font-size: 0.78rem; }
+.player-money .total { grid-column: 1; margin: 0; padding: 0; border: 0; }
+.player-money .total span:last-child { white-space: nowrap; }
+.player-money .stamp { grid-column: 2; grid-row: 1 / span 2; margin: 0; font-size: 0.9rem; padding: 6px 10px; max-width: 48vw; white-space: normal; }
+.player-money .stamp.pending { font-size: 0.82rem; }
+@media (prefers-reduced-motion: no-preference) {
+  .player[open] { animation: rise 260ms cubic-bezier(.2, .8, .3, 1); }
+  .player[open]::backdrop { animation: dim 260ms ease-out; }
+}
+@keyframes rise { from { transform: translateY(100%); } to { transform: none; } }
+/* The page behind the open sheet does not scroll. */
+:root:has(.player[open]) { overflow: hidden; }
+/* On a phone, the call names get smaller type so more of each fits its lane. */
+@media (max-width: 600px) {
+  .lane-head { font-size: 0.72rem; padding-inline: 2px; }
+  .lane-head small { font-size: 0.66rem; }
+  .msg .call, .msg .res { font-size: 0.66rem; padding: 0 2px; }
+}
+/* A phone on its side: the run gets the height, and the narration gives way. */
+@media (max-height: 500px) {
+  .player { height: 100svh; border-radius: 0; gap: 6px; }
+  .player-grab { display: none; }
+  .player-head { padding-top: 6px; }
+  .player-head h2 { font-size: 1rem; }
+  .player-body { gap: 6px; }
+  .player-body .narration { display: none; }
+  .player-money { padding-top: 6px; }
+}
+@keyframes dim { from { opacity: 0; } to { opacity: 1; } }
 
 /* Evidence */
 .evidence { padding: 0; }
@@ -235,18 +323,20 @@ code, pre, .mono { font-family: var(--mono); }
 .foot { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.82rem; display: grid; gap: 4px; }
 .foot p { margin: 0; max-width: 90ch; }
 
-@media (max-width: 1060px) {
-  .stage-grid { grid-template-columns: minmax(0, 1fr); }
-  .side { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-}
 @media (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
-  .rail { display: none; }
+  .rail, .rail-resize { display: none; }
   .mobile-pick { display: grid; gap: 6px; }
   .mobile-pick select { width: 100%; border: 1px solid var(--rule); background: var(--sheet); border-radius: 6px; padding: 8px; }
   .court { grid-template-columns: minmax(0, 1fr); }
   .court > div + div { border-left: 0; border-top: 1px solid var(--rule); }
   .keys { display: none; }
+  /* Every lane fits the screen, so the whole run is in view; long names are cut with an ellipsis. */
+  .diagram { min-width: 0; }
+  .lanes, .row, .lifelines { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
+  .lane-head, .lane-head small { overflow-wrap: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .watch[hidden] { display: none; }
+  .watch { display: inline-flex; justify-self: start; align-items: center; gap: 8px; margin-top: 4px; border: 0; border-radius: 999px; background: var(--ink); color: var(--paper); font-weight: 600; font-size: 1rem; padding: 12px 22px; cursor: pointer; }
 }
 </style>
 
@@ -275,63 +365,68 @@ code, pre, .mono { font-family: var(--mono); }
       <ul id="all" hidden></ul>
       <p class="none" id="none" hidden>No case matches these filters.</p>
     </nav>
+    <div class="rail-resize" id="rail-resize" role="separator" aria-orientation="vertical" aria-controls="rail" aria-label="Width of the case list" tabindex="0" title="Drag to resize. Double-click to reset."></div>
 
     <main class="stage">
-      <div class="mobile-pick">
-        <label for="pick">Case</label>
-        <select id="pick"></select>
-      </div>
-
-      <div class="case-head">
-        <div class="chips" id="chips"></div>
-        <h2 id="title"></h2>
-        <p class="caption" id="caption"></p>
-      </div>
-
-      <div class="court" id="court" hidden>
-        <div><span class="k">Claim</span><span class="v" id="claim"></span><q id="claim-words"></q></div>
-        <div><span class="k">Evidence</span><span class="v" id="evidence"></span></div>
-        <div><span class="k">Ruling</span><span class="v" id="ruling"></span></div>
-      </div>
-
-      <div class="transport">
-        <button type="button" id="b-start" aria-label="Back to the start">⏮</button>
-        <button type="button" id="b-back" aria-label="One step back">◀</button>
-        <button type="button" class="play" id="b-play">Replay</button>
-        <button type="button" id="b-fwd" aria-label="One step forward">▶</button>
-        <button type="button" id="b-end" aria-label="Jump to the end">⏭</button>
-        <input type="range" id="scrub" min="0" max="0" value="0" aria-label="Step">
-        <span class="step-count" id="stepcount"></span>
-        <select id="speed" aria-label="Speed"><option value="1300">Slow</option><option value="750" selected>Normal</option><option value="350">Fast</option></select>
-      </div>
-      <p class="narration" id="narration" aria-live="polite"></p>
-      <p class="keys"><kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> step · <kbd>[</kbd> <kbd>]</kbd> previous or next case</p>
       <div class="stage-grid">
-        <div class="sheet" id="stage-sheet">
-          <div class="diagram-scroll">
-            <div class="diagram" id="diagram">
-              <div class="lifelines" id="lifelines"></div>
-              <div class="lanes" id="lanes"></div>
-              <div class="rows" id="rows"></div>
+        <div class="stage-main">
+          <div class="mobile-pick">
+            <label for="pick">Case</label>
+            <select id="pick"></select>
+          </div>
+
+          <div class="case-head">
+            <div class="chips" id="chips"></div>
+            <h2 id="title"></h2>
+            <p class="caption" id="caption"></p>
+            <button type="button" class="watch" id="b-watch" aria-haspopup="dialog">▶ Watch it run</button>
+          </div>
+
+          <div class="transport" id="transport">
+            <button type="button" id="b-start" aria-label="Back to the start">⏮</button>
+            <button type="button" id="b-back" aria-label="One step back">◀</button>
+            <button type="button" class="play" id="b-play">Replay</button>
+            <button type="button" id="b-fwd" aria-label="One step forward">▶</button>
+            <button type="button" id="b-end" aria-label="Jump to the end">⏭</button>
+            <input type="range" id="scrub" min="0" max="0" value="0" aria-label="Step">
+            <span class="step-count" id="stepcount"></span>
+            <select id="speed" aria-label="Speed"><option value="1300">Slow</option><option value="750" selected>Normal</option><option value="350">Fast</option></select>
+          </div>
+          <p class="narration" id="narration" aria-live="polite"></p>
+          <div class="sheet" id="stage-sheet">
+            <div class="diagram-scroll" id="diagram-scroll">
+              <div class="diagram" id="diagram">
+                <div class="lifelines" id="lifelines"></div>
+                <div class="lanes" id="lanes"></div>
+                <div class="rows" id="rows"></div>
+              </div>
             </div>
           </div>
+          <p class="keys"><kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> step · <kbd>[</kbd> <kbd>]</kbd> previous or next case</p>
         </div>
-        <div class="side">
-          <section class="sheet statement" aria-labelledby="st-title">
-            <h3 id="st-title">Card statement</h3>
-            <p class="sub" id="st-sub"></p>
-            <ul class="lines" id="lines"></ul>
-            <div class="total" id="total"></div>
-          </section>
-          <section class="sheet verdict" aria-live="polite">
-            <span class="k">The grader’s verdict</span>
-            <div class="stamp pending" id="stamp">Plays at the end</div>
-            <p class="withdrawn-note" id="withdrawn" hidden></p>
-            <p class="grader-words" id="words"></p>
-          </section>
+
+        <div class="stage-side">
+          <div class="court" id="court" hidden>
+            <div><span class="k">Claim</span><span class="v" id="claim"></span><q id="claim-words"></q></div>
+            <div><span class="k">Evidence</span><span class="v" id="evidence"></span></div>
+            <div><span class="k">Ruling</span><span class="v" id="ruling"></span></div>
+          </div>
+          <div class="side">
+            <section class="sheet statement" aria-labelledby="st-title">
+              <h3 id="st-title">Card statement</h3>
+              <p class="sub" id="st-sub"></p>
+              <ul class="lines" id="lines"></ul>
+              <div class="total" id="total"></div>
+            </section>
+            <section class="sheet verdict" aria-live="polite">
+              <span class="k">The grader’s verdict</span>
+              <div class="stamp pending" id="stamp">Plays at the end</div>
+              <p class="withdrawn-note" id="withdrawn" hidden></p>
+              <p class="grader-words" id="words"></p>
+            </section>
+          </div>
         </div>
       </div>
-
 
       <section class="sheet evidence">
         <div class="tabs" role="tablist">
@@ -345,6 +440,16 @@ code, pre, .mono { font-family: var(--mono); }
       </section>
     </main>
   </div>
+
+  <dialog class="player" id="player" aria-labelledby="player-title">
+    <div class="player-head" id="player-head">
+      <span class="player-grab" aria-hidden="true"></span>
+      <h2 id="player-title"></h2>
+      <button type="button" class="player-close" id="player-close" aria-label="Close the player">✕</button>
+    </div>
+    <div class="player-body" id="player-body"></div>
+    <div class="player-money" id="player-money" aria-live="polite"><span class="k" id="player-money-k"></span></div>
+  </dialog>
 
   <footer class="foot" id="foot"></footer>
 </div>

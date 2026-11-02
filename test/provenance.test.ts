@@ -41,7 +41,7 @@ describe("provenance", () => {
     assert.equal(provenance(fresh).dirty, true);
   });
 
-  it("outside a git checkout, as in an unpacked submission zip, hashes the same files the same way", () => {
+  it("outside a git checkout, as in an unpacked source archive, hashes the same files the same way", () => {
     const root = repo();
     mkdirSync(join(root, "tasks/t"), { recursive: true });
     writeFileSync(join(root, "tasks/t/prompt.md"), "spec\n");

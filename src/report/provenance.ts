@@ -7,7 +7,7 @@ import { join, relative, sep } from "node:path";
 const GRADING_INPUTS = ["src", "tasks", "package.json", "package-lock.json"];
 
 export interface Provenance {
-  /** The commit, or "none" outside a git checkout (an unpacked submission zip, say): the hash still identifies the code. */
+  /** The commit, or "none" outside a git checkout (an unpacked source archive, say): the hash still identifies the code. */
   commit: string;
   /** True when any grading input differs from the commit. */
   dirty: boolean;

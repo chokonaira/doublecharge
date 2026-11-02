@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "The withdrawal is recorded and the wallet debited in one transaction before any money moves. The PayCo payout then runs under an idempotency key built from that record.\n\n```ts\n// Withdrawal flow:\n//\n// 1. Reserve. One Db transaction records the withdrawal under\n//    `withdrawal:<userId>:<requestId>` and debits the wallet. If funds are\n//    short, it records \"insufficient_funds\" and leaves the wallet alone.\n//    Because the debit and the record are written together, a retry or a\n//    concurrent duplicate request can never debit the wallet twice.\n//\n// 2. Payout. Call PayCo with an idempotency key derived from the withdrawal\n//    record, using the amount stored in the record. Repeating this call\n//    (retries, other instances, the reconciliation job) never pays out twice.\n//\n// 3. Finalise. A transaction that only acts if the record is still \"pending\":\n//    - payout succeeded -> mark \"paid_out\"\n//    - payout_rejected  -> credit the wallet back and mark \"rejected\"\n//    This guard means the money is put back at most once.\n//\n// If PayCo keeps timing out, or any other error happens, the record stays\n// \"pending\" with the money reserved. We throw. The client retry or the\n// reconciliation job then runs `withdraw` again with the same requestId, and\n// that run resumes at step 2. Retrying after a timeout with the same key is\n// safe. Money is therefore never created or lost, though the funds stay\n// reserved until a retry completes the request.\n\ntype WithdrawResult = \"paid_out\" | \"insufficient_funds\" | \"rejected\";\n\ninterface WithdrawalRecord {\n  userId: string;\n  requestId: string;\n  amount: number;\n  state: \"pending\" | \"paid_out\" | \"rejected\" | \"insufficient_funds\";\n  payoutId?: string;\n  createdAt: number;\n}\n\nconst sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));\n\nfunction errCode(e: unknown): string | undefined {\n  const c = (e as { code?: unknown } | null)?.code;\n  return typeof c === \"string\" ? c : undefined;\n}\n\nexport async function withdraw(\n  req: { requestId: string; userId: string; amount: number },\n  ctx: Ctx,\n): Promise<WithdrawResult> {\n  const { requestId, userId, amount } = req;\n  const walletKey = `wallet:${userId}`;\n  const recordKey = `withdrawal:${userId}:${requestId}`;\n  const idempotencyKey = `withdrawal:${userId}:${requestId}`;\n\n  // Step 1: create the record and reserve the funds atomically.\n  // If the record already exists, return it unchanged.\n  const record = await ctx.db.transaction<WithdrawalRecord>((tx) => {\n    const existing = tx.get<WithdrawalRecord>(recordKey);\n    if (existing) return existing;\n\n    const balance = tx.get<number>(walletKey) ?? 0;\n    const rec: WithdrawalRecord = {\n      userId,\n      requestId,\n      amount,\n      state: balance < amount ? \"insufficient_funds\" : \"pending\",\n      createdAt: Date.now(),\n    };\n    if (rec.state === \"pending\") {\n      tx.set<number>(walletKey, balance - amount);\n    }\n    tx.set<WithdrawalRecord>(recordKey, rec);\n    return rec;\n  });\n\n  if (record.state !== \"pending\") return record.state;\n\n  // Step 2: pay out. The amount comes from the record, so the parameters\n  // always match the first attempt.\n  let payoutId: string | undefined;\n  let rejected = false;\n  const maxAttempts = 4;\n  for (let attempt = 1; ; attempt++) {\n    try {\n      const payout = await ctx.payco.createPayout({\n        amount: record.amount,\n        currency: \"EUR\",\n        destination: userId,\n        idempotencyKey,\n      });\n      payoutId = payout.id;\n      break;\n    } catch (e) {\n      const code = errCode(e);\n      if (code === \"payout_rejected\") {\n        rejected = true;\n        break;\n      }\n      if (code === \"timeout\" && attempt < maxAttempts) {\n        // Safe: a timed-out request is either processed now or replayed.\n        await sleep(200 * 2 ** (attempt - 1));\n        continue;\n      }\n      // Outcome unknown, or an unexpected error. Leave the record \"pending\"\n      // with funds reserved. A retry with the same requestId resumes here.\n      throw e;\n    }\n  }\n\n  // Step 3: finalise. This acts at most once across all instances.\n  const final = await ctx.db.transaction<WithdrawalRecord>((tx) => {\n    const cur = tx.get<WithdrawalRecord>(recordKey);\n    if (!cur) {\n      // Should be impossible: records are never deleted by this module.\n      throw Object.assign(new Error(\"withdrawal record missing\"), { code: \"record_missing\" });\n    }\n    if (cur.state !== \"pending\") return cur;\n\n    if (rejected) {\n      const balance = tx.get<number>(walletKey) ?? 0;\n      tx.set<number>(walletKey, balance + cur.amount);\n      const next: WithdrawalRecord = { ...cur, state: \"rejected\" };\n      tx.set<WithdrawalRecord>(recordKey, next);\n      return next;\n    }\n    const next: WithdrawalRecord = { ...cur, state: \"paid_out\", payoutId };\n    tx.set<WithdrawalRecord>(recordKey, next);\n    return next;\n  });\n\n  return final.state as WithdrawResult;\n}\n```\n\n- **Insufficient funds:** this result is recorded too. A retry with the same `requestId` returns the same answer, even if money arrives in the wallet in between.\n- **Amount on retries:** retries always use the amount stored on the first attempt, so PayCo never sees an `idempotency_mismatch` from this code.\n- **Limitation:** if PayCo keeps timing out, the function throws and the money stays reserved in the wallet. It is released or paid out when the client retries or the reconciliation job runs the same `requestId` again."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "anthropic/claude-opus-5.5",
+  "provider": "Claude Platform on AWS",
+  "usage": {
+    "prompt_tokens": 1889,
+    "completion_tokens": 2890,
+    "total_tokens": 4779,
+    "cost": 0.065356,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.065356,
+      "upstream_inference_prompt_cost": 0.007556,
+      "upstream_inference_completions_cost": 0.0578
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 808,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

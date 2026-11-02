@@ -1,0 +1,12 @@
+[
+  {
+    "scenario": "duplicate delivery",
+    "points": 16,
+    "failures": 0
+  },
+  {
+    "scenario": "two partial refunds",
+    "points": 20,
+    "failures": 0
+  }
+]

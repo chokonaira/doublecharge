@@ -32,6 +32,27 @@ describe("the Replay", () => {
     assert.ok(!page.includes("/*DATA*/") && !page.includes("/*SCRIPT*/"), "both placeholders filled");
   });
 
+  it("has the markup its layout script moves and sizes: the rail's separator, the diagram and the phone sheet", () => {
+    assert.match(page, /<div class="rail-resize" id="rail-resize" role="separator" aria-orientation="vertical" aria-controls="rail" aria-label="[^"]+" tabindex="0"/);
+    assert.match(page, /<nav class="rail" id="rail"/);
+    assert.match(page, /<div class="diagram-scroll" id="diagram-scroll">/);
+    assert.match(page, /<dialog class="player" id="player" aria-labelledby="player-title">/);
+    for (const id of ["b-watch", "player-head", "player-title", "player-close", "player-body", "player-money", "player-money-k", "transport", "narration", "stage-sheet", "total", "stamp"]) {
+      assert.equal(page.match(new RegExp(`id="${id}"`, "g"))?.length, 1, `exactly one #${id}`);
+    }
+    // The script must never scroll the page to follow a case: rows scroll inside the diagram only.
+    const start = page.lastIndexOf("<script>") + "<script>".length;
+    const script = page.slice(start);
+    for (const call of ["scrollIntoView", "window.scroll", "scrollTo(", "document.documentElement.scrollTop"]) assert.ok(!script.includes(call), `no ${call} in the page script`);
+  });
+
+  it("has every element the page script looks up by id", () => {
+    const source = readFileSync(join(ROOT, "src/report/replay/page.ts"), "utf8");
+    const ids = new Set([...source.matchAll(/\$\("([a-z-]+)"/g)].map((m) => m[1]!));
+    assert.ok(ids.size > 30, "found the lookups");
+    for (const id of ids) assert.match(page, new RegExp(`id="${id}"`), `#${id} is in the page`);
+  });
+
   it("carries its page script, compiled from TypeScript, and it parses", () => {
     const start = page.lastIndexOf("<script>") + "<script>".length;
     const script = page.slice(start, page.indexOf("</script>", start));

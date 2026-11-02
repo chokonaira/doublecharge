@@ -168,6 +168,7 @@ function openCase(id: string, { play = true }: { play?: boolean } = {}): void {
   if (ep.part === 2) {
     $("claim").textContent = `${nameOf(ep.model)}: unsafe`;
     $("claim-words").textContent = ep.summary ?? "";
+    $("claim-words").title = ep.summary ?? "";
     $("claim-words").hidden = !ep.summary;
     $("evidence").textContent = `An attack the grader ran ${ep.how === "in another interleaving" ? "in another interleaving of its requests" : "as written"}`;
     $("ruling").textContent = ep.outcome === "broken" ? "Confirmed: a rule broke" : "Overruled: every rule held";
@@ -200,6 +201,9 @@ function openCase(id: string, { play = true }: { play?: boolean } = {}): void {
   $("trace").textContent = ep.trace.map((e) => `${e.actor.padEnd(24)} ${e.call}${e.times ? `  ×${e.times}` : ""}\n${" ".repeat(25)}→ ${e.result}`).join("\n");
 
   $("scrub", HTMLInputElement).max = String(ep.trace.length);
+  $("diagram-scroll").scrollTop = 0;
+  if (player.open) labelPlayer();
+  fitDiagram();
   if (play && !reduced) {
     seek(0);
     start();
@@ -217,7 +221,7 @@ function seek(target: number, { quiet = false }: { quiet?: boolean } = {}): void
     r.classList.toggle("enter", shown && !quiet && i >= previous && i === step - 1);
   });
   const current = rows[step - 1];
-  if (current && !quiet) current.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
+  if (current && !quiet) follow(current);
   $("scrub", HTMLInputElement).value = String(step);
   $("stepcount").textContent = `${step} / ${ep.trace.length}`;
   if (!playing()) $("b-play").textContent = step >= ep.trace.length ? "Replay" : "Play";
@@ -225,6 +229,57 @@ function seek(target: number, { quiet = false }: { quiet?: boolean } = {}): void
   drawLedger(quiet ? -1 : previous);
   drawVerdict(!quiet && step === ep.trace.length && previous < step);
 }
+
+/** Keeps the newest row in sight by scrolling the diagram alone: the page never moves on its own. */
+function follow(row: HTMLElement): void {
+  const box = $("diagram-scroll");
+  const view = box.getBoundingClientRect();
+  const at = row.getBoundingClientRect();
+  // The lane heads stay at the top of the diagram, over the rows that scroll under them, and a
+  // horizontal scrollbar takes the bottom.
+  const covered = $("lanes").offsetHeight;
+  const bottom = view.top + box.clientHeight;
+  const behavior = reduced ? "auto" : "smooth";
+  if (at.bottom > bottom) box.scrollBy({ top: at.bottom - bottom + 8, behavior });
+  else if (at.top < view.top + covered) box.scrollBy({ top: at.top - view.top - covered - 8, behavior });
+}
+
+/**
+ * Sizes the diagram to end at the bottom of the first screen, and no taller than its whole trace, so a
+ * case plays where the viewer landed: its rows scroll inside the diagram, which keeps one size while it
+ * plays, and the page scrolls only when the viewer scrolls it. Where the diagram starts too low for that,
+ * it keeps the stylesheet's height, and plays once it is scrolled into view.
+ */
+const FIT_MIN = 200;
+function fitDiagram(): void {
+  const box = $("diagram-scroll");
+  const rows = [...$("rows").children] as HTMLElement[];
+  const hidden = rows.map((r) => r.hidden);
+  box.style.height = "";
+  for (const r of rows) r.hidden = false;
+  const full = box.scrollHeight;
+  rows.forEach((r, i) => (r.hidden = hidden[i]!));
+  const room = innerHeight - (box.getBoundingClientRect().top + scrollY) - 20;
+  // Either way the height is fixed while a case plays, so the page below never moves as rows appear.
+  const most = room >= FIT_MIN ? room : parseFloat(getComputedStyle(box).maxHeight) || full;
+  box.style.height = `${Math.min(full, most)}px`;
+}
+// A phone's address bar showing and hiding changes the height as the viewer scrolls; only a real change
+// of the window refits the diagram.
+const coarse = matchMedia("(pointer: coarse)").matches;
+let fitted = { width: innerWidth, height: innerHeight };
+let fitQueued = false;
+addEventListener("resize", () => {
+  const grew = Math.abs(innerHeight - fitted.height);
+  if (fitQueued || (innerWidth === fitted.width && coarse && grew < 160)) return;
+  fitQueued = true;
+  requestAnimationFrame(() => {
+    fitQueued = false;
+    fitted = { width: innerWidth, height: innerHeight };
+    fitDiagram();
+  });
+});
+void document.fonts?.ready.then(fitDiagram);
 
 function narrate(): void {
   const narration = $("narration");
@@ -234,6 +289,8 @@ function narrate(): void {
   }
   const e = ep.trace[step - 1]!;
   narration.replaceChildren(...(e.call === "trace cut" ? [] : [el("b", { text: e.actor }), " "]), ...words(describe(e)));
+  // On a wide stage it is held to two lines; the whole of a long step is its tooltip.
+  narration.title = narration.textContent ?? "";
 }
 
 function drawLedger(previous: number): void {
@@ -438,6 +495,103 @@ function fitScrollPadding(): void {
 }
 addEventListener("resize", fitScrollPadding);
 
+// ---- The rail's width ------------------------------------------------------------------------------
+
+const RAIL = { min: 240, normal: 320, max: 560, key: "doublecharge-replay-rail" };
+// The stage widths the stylesheet's container query and the diagram's lanes need.
+const STAGE = { wide: 860, min: 640 };
+const layoutBox = document.querySelector<HTMLElement>(".layout")!;
+const resizer = $("rail-resize");
+/** The width the viewer chose, and the width the window allows it now. */
+let railChosen = RAIL.normal;
+let railWidth = RAIL.normal;
+/**
+ * The widest the rail can be: wide enough to keep the case file beside the diagram, where the screen
+ * has room for both at the usual width, and otherwise to leave the stage a diagram of five lanes.
+ */
+function railMax(): number {
+  const room = layoutBox.clientWidth - 28; // the handle and the gaps either side of it
+  // Where the case file fits beside the diagram at the usual width, it stays there; on a narrower screen the
+  // rail can narrow, but not widen past the usual width, so a wider window never allows a narrower rail.
+  const max = room - RAIL.normal >= STAGE.wide ? room - STAGE.wide : Math.min(room - STAGE.min, RAIL.normal);
+  return Math.max(RAIL.min, Math.min(RAIL.max, max));
+}
+
+/** Applies the chosen width within what the window allows; a narrow window does not change the choice. */
+function setRail(width: number, { save = false, fit = true }: { save?: boolean; fit?: boolean } = {}): void {
+  railChosen = Math.round(Math.max(RAIL.min, Math.min(railMax(), width)));
+  applyRail({ fit });
+  if (save) {
+    try {
+      if (railChosen === RAIL.normal) localStorage.removeItem(RAIL.key);
+      else localStorage.setItem(RAIL.key, String(railChosen));
+    } catch {
+      // Storage can be off; the width then lasts until the page is closed.
+    }
+  }
+}
+
+function applyRail({ fit = true }: { fit?: boolean } = {}): void {
+  railWidth = Math.round(Math.max(RAIL.min, Math.min(railMax(), railChosen)));
+  layoutBox.style.setProperty("--rail-w", `${railWidth}px`);
+  resizer.setAttribute("aria-valuemin", String(RAIL.min));
+  resizer.setAttribute("aria-valuemax", String(railMax()));
+  resizer.setAttribute("aria-valuenow", String(railWidth));
+  fitScrollPadding();
+  if (fit) fitDiagram();
+}
+
+resizer.addEventListener("pointerdown", (down) => {
+  if (down.button !== 0) return;
+  down.preventDefault();
+  resizer.setPointerCapture(down.pointerId);
+  resizer.classList.add("dragging");
+  document.documentElement.classList.add("resizing");
+  const from = railWidth;
+  // The diagram is refitted once, when the drag ends, not on every move.
+  const move = (event: PointerEvent) => setRail(from + event.clientX - down.clientX, { fit: false });
+  const end = () => {
+    resizer.removeEventListener("pointermove", move);
+    resizer.removeEventListener("pointerup", end);
+    resizer.removeEventListener("pointercancel", end);
+    resizer.removeEventListener("lostpointercapture", end);
+    resizer.classList.remove("dragging");
+    document.documentElement.classList.remove("resizing");
+    setRail(railWidth, { save: true });
+  };
+  resizer.addEventListener("pointermove", move);
+  resizer.addEventListener("pointerup", end);
+  resizer.addEventListener("pointercancel", end);
+  resizer.addEventListener("lostpointercapture", end);
+});
+resizer.addEventListener("dblclick", () => setRail(RAIL.normal, { save: true }));
+// Its own keys, which must not also step the trace.
+resizer.addEventListener("keydown", (event) => {
+  // Shortcuts held with Alt, Control or Command are the browser's (Alt+Left is Back), not a resize.
+  if (event.altKey || event.ctrlKey || event.metaKey) return;
+  const by = event.shiftKey ? 64 : 16;
+  const to =
+    event.key === "ArrowLeft" ? railWidth - by
+    : event.key === "ArrowRight" ? railWidth + by
+    : event.key === "Home" ? RAIL.min
+    : event.key === "End" ? railMax()
+    : event.key === "Enter" ? RAIL.normal
+    : undefined;
+  if (to === undefined) return;
+  event.preventDefault();
+  event.stopPropagation();
+  setRail(to, { save: true });
+});
+addEventListener("resize", () => applyRail({ fit: false }));
+
+let savedRail = NaN;
+try {
+  savedRail = Number(localStorage.getItem(RAIL.key));
+} catch {
+  // As above: no storage, no remembered width.
+}
+setRail(Number.isFinite(savedRail) && savedRail > 0 ? savedRail : RAIL.normal);
+
 $("featured").replaceChildren(...DATA.featured.map((f) => caseButton(byId.get(f.id)!, f.title, subtitle(byId.get(f.id)!))));
 $("n-start").textContent = String(DATA.featured.length);
 $("n-all").textContent = String(DATA.episodes.length);
@@ -478,6 +632,100 @@ $("pick").replaceChildren(
 );
 $("pick", HTMLSelectElement).addEventListener("change", (event) => openCase((event.target as HTMLSelectElement).value));
 
+// ---- On a phone, the player as a sheet ----------------------------------------------------------------
+
+// The page's own controls, diagram, total and stamp move into the sheet while it is open and back when it
+// closes, so there is one player, on whichever screen it is shown.
+// A browser without <dialog> keeps the player on the page, and the button that opens the sheet is not shown.
+const player = $("player") as HTMLDialogElement;
+const canSheet = typeof player.showModal === "function";
+$("b-watch").hidden = !canSheet;
+const phone = matchMedia("(max-width: 860px)");
+const toSheet: [HTMLElement, HTMLElement][] = [
+  [$("transport"), $("player-body")],
+  [$("narration"), $("player-body")],
+  [$("stage-sheet"), $("player-body")],
+  [$("total"), $("player-money")],
+  [$("stamp"), $("player-money")],
+];
+const homes: Comment[] = [];
+
+function labelPlayer(): void {
+  $("player-title").textContent = $("title").textContent;
+  $("player-money-k").textContent = $("st-title").textContent;
+}
+
+function restorePlayer(): void {
+  if (homes.length === 0) return;
+  toSheet.forEach(([node], i) => homes[i]?.replaceWith(node));
+  homes.length = 0;
+  fitDiagram();
+}
+
+function openPlayer(): void {
+  if (!canSheet || player.open) return;
+  restorePlayer();
+  labelPlayer();
+  for (const [node, into] of toSheet) {
+    const home = document.createComment("");
+    node.before(home);
+    homes.push(home);
+    into.append(node);
+  }
+  player.showModal();
+  $("b-play").focus();
+  // It opens to play the case from the start, unless the viewer prefers less motion.
+  if (!reduced) {
+    stop();
+    seek(0);
+    start();
+  }
+}
+
+player.addEventListener("close", () => {
+  if (player.open) return;
+  stop();
+  player.style.transform = "";
+  restorePlayer();
+  // Focus goes back to the button that opened the sheet; if that is hidden now, to the page's play button.
+  if (document.activeElement === document.body) $("b-play").focus({ preventScroll: true });
+});
+$("b-watch").addEventListener("click", openPlayer);
+$("player-close").addEventListener("click", () => player.close());
+// A tap on the dimmed page above the sheet closes it: one that starts there, so a click from the keyboard
+// (which has no position) or a drag that ends there does not.
+let downAbove = false;
+const above = (event: MouseEvent) => event.target === player && event.clientY < player.getBoundingClientRect().top;
+player.addEventListener("pointerdown", (event) => (downAbove = above(event)));
+player.addEventListener("click", (event) => {
+  if (downAbove && above(event)) player.close();
+  downAbove = false;
+});
+// So does pulling the sheet down by its top.
+$("player-head").addEventListener("pointerdown", (down) => {
+  if (down.button !== 0 || (down.target as Element).closest("button")) return;
+  const head = $("player-head");
+  head.setPointerCapture(down.pointerId);
+  player.style.transition = "none";
+  const pulled = (event: PointerEvent) => Math.max(0, event.clientY - down.clientY);
+  const move = (event: PointerEvent) => (player.style.transform = `translateY(${pulled(event)}px)`);
+  const end = (event: PointerEvent) => {
+    head.removeEventListener("pointermove", move);
+    head.removeEventListener("pointerup", end);
+    head.removeEventListener("pointercancel", end);
+    player.style.transition = "";
+    if (event.type === "pointerup" && pulled(event) > 90) player.close();
+    else player.style.transform = "";
+  };
+  head.addEventListener("pointermove", move);
+  head.addEventListener("pointerup", end);
+  head.addEventListener("pointercancel", end);
+});
+// A screen that turns wide enough for the stage puts the player back on the page.
+phone.addEventListener("change", () => {
+  if (!phone.matches && player.open) player.close();
+});
+
 // ---- Opening line, footer and first case -------------------------------------------------------------
 
 $("intro").textContent = intro(DATA);
@@ -497,7 +745,8 @@ $("foot").replaceChildren(
 );
 
 // The first case opens complete, so the page reads at a glance; then, unless the viewer prefers less
-// motion, it plays from the start once, so nobody has to find the Play button to see what it does.
+// motion, it plays from the start once, so nobody has to find the Play button to see what it does. It
+// waits until its diagram is in view: at once on a wide screen, and on a phone once the viewer scrolls to it.
 const first = caseFromHash(location.hash, new Set(byId.keys())) ?? DATA.featured[0]!.id;
 if (!featured.has(first)) {
   document.querySelector<HTMLInputElement>('input[name="view"][value="all"]')!.checked = true;
@@ -506,10 +755,32 @@ if (!featured.has(first)) {
 openCase(first, { play: false });
 revealCurrent();
 if (!reduced) {
-  setTimeout(() => {
-    if (ep.id === first && !playing() && step === ep.trace.length) {
-      seek(0);
-      start();
-    }
-  }, 1500);
+  const loaded = performance.now();
+  // Once the viewer has clicked or pressed a key, the page leaves playing to them.
+  let acted = false;
+  addEventListener("click", () => (acted = true), { capture: true, once: true });
+  addEventListener(
+    "keydown",
+    (event) => {
+      if (!["Shift", "Control", "Alt", "Meta"].includes(event.key)) acted = true;
+    },
+    { capture: true },
+  );
+  const seen = new IntersectionObserver(
+    (entries) => {
+      if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return;
+      seen.disconnect();
+      setTimeout(
+        () => {
+          if (!acted && ep.id === first && !playing() && step === ep.trace.length) {
+            seek(0);
+            start();
+          }
+        },
+        performance.now() - loaded < 1000 ? 1500 : 500,
+      );
+    },
+    { threshold: 0.5 },
+  );
+  seen.observe($("diagram-scroll"));
 }
