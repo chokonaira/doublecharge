@@ -58,8 +58,11 @@ code, pre, .mono { font-family: var(--mono); }
 .top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
 .top h1 { font-size: clamp(1.7rem, 3vw, 2.3rem); letter-spacing: -0.01em; }
 .top h1 span { color: var(--stamp); }
-.top p { margin: 0; color: var(--muted); max-width: 80ch; }
-.theme { margin-left: auto; align-self: center; border: 1px solid var(--rule); background: var(--sheet); color: var(--muted); border-radius: 999px; padding: 4px 12px; font-size: 0.82rem; cursor: pointer; }
+.top p { margin: 0; color: var(--muted); max-width: 66ch; flex: 1 1 420px; }
+.top-actions { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.about { color: var(--lane-1); font-size: 0.88rem; font-weight: 600; text-underline-offset: 3px; }
+.about:hover { color: var(--ink); }
+.theme { border: 1px solid var(--rule); background: var(--sheet); color: var(--muted); border-radius: 999px; padding: 4px 12px; font-size: 0.82rem; cursor: pointer; }
 .theme:hover { color: var(--ink); border-color: var(--ink); }
 .theme[aria-pressed="true"] { color: var(--ink); }
 
@@ -347,7 +350,10 @@ code, pre, .mono { font-family: var(--mono); }
   <header class="top">
     <h1>DoubleCharge <span>Replay</span></h1>
     <p id="intro">Every failure and every reviewer’s attack that ran in the final runs, played back call by call from the grader’s own traces.</p>
-    <button type="button" class="theme" id="b-theme" aria-pressed="false">Dark mode</button>
+    <div class="top-actions">
+      <a class="about" href="https://github.com/chokonaira/doublecharge#readme">How this eval works</a>
+      <button type="button" class="theme" id="b-theme" aria-pressed="false">Dark mode</button>
+    </div>
   </header>
 
   <div class="layout">
