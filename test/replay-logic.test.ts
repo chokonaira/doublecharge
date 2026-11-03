@@ -295,6 +295,6 @@ describe("the Replay's data, case by case", () => {
   });
 
   it("opens with counts taken from the data", () => {
-    assert.match(intro(data), /4 failed scenarios in Part 1, and 104 attacks in Part 2, 97 confirmed and 7 overruled\. 2 more alarms' attacks could not be run\./);
+    assert.match(intro(data), /the 4 scenarios the models’ code failed, and the 104 alarms reviewers backed with an attack, 97 proven and 7 overruled\. 2 more alarms' attacks could not be run\./);
   });
 });
