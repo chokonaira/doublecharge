@@ -293,6 +293,94 @@ export function codeOwner(ep: Episode): string {
   return ep.writtenBy ? `${nameOf(ep.writtenBy)}’s code from an earlier run` : (ep.sample ?? "");
 }
 
+// ---- Code colouring, as an editor would show it ------------------------------------------------------
+
+/** What a piece of source is, for its colour; "plain" is everything else (spaces, punctuation, names). */
+export type TokenKind = "kw" | "str" | "num" | "com" | "fn" | "type" | "prop" | "lit" | "bad" | "ok" | "plain";
+export interface Token {
+  text: string;
+  kind: TokenKind;
+}
+
+const KEYWORDS = new Set(
+  ("abstract as async await break case catch class const continue default delete do else enum export extends finally for from " +
+    "function get if implements import in instanceof interface let new of private protected public readonly return set static " +
+    "super switch this throw try type typeof var void while yield").split(" "),
+);
+const LITERALS = new Set(["true", "false", "null", "undefined", "NaN", "Infinity"]);
+
+/**
+ * Splits TypeScript or JSON into coloured pieces whose texts join back to the source exactly, so the page
+ * can build each piece as a text node and never parse a model's code as markup.
+ */
+export function highlight(source: string, lang: "ts" | "json"): Token[] {
+  const tokens: Token[] = [];
+  const push = (text: string, kind: TokenKind) => {
+    const last = tokens.at(-1);
+    if (last && last.kind === kind && kind === "plain") last.text += text;
+    else tokens.push({ text, kind });
+  };
+  const patterns: [RegExp, (match: string, at: number) => TokenKind][] = [
+    [/\/\/[^\n]*|\/\*[\s\S]*?(?:\*\/|$)/y, () => (lang === "ts" ? "com" : "plain")],
+    [/"(?:[^"\\\n]|\\.)*"?|'(?:[^'\\\n]|\\.)*'?|`(?:[^`\\]|\\.)*`?/y, (match, at) =>
+      lang === "json" && /^\s*:/.test(source.slice(at + match.length)) ? "prop" : "str"],
+    [/-?\b\d[\d_]*(?:\.\d+)?(?:[eE][+-]?\d+)?\b/y, () => "num"],
+    [/[A-Za-z_$][\w$]*/y, (match, at) => {
+      if (LITERALS.has(match)) return "lit";
+      if (lang === "json") return "plain";
+      const called = /^\s*\(/.test(source.slice(at + match.length));
+      // After a dot it is a property or a method, even when it is spelled like a keyword (db.get, set).
+      if (source[at - 1] === ".") return called ? "fn" : "plain";
+      if (KEYWORDS.has(match)) return "kw";
+      if (called) return "fn";
+      return /^[A-Z]/.test(match) ? "type" : "plain";
+    }],
+    [/\s+|[\s\S]/y, () => "plain"],
+  ];
+  let at = 0;
+  while (at < source.length) {
+    for (const [pattern, kindOf] of patterns) {
+      pattern.lastIndex = at;
+      const match = pattern.exec(source);
+      if (!match || match[0] === "") continue;
+      push(match[0], kindOf(match[0], at));
+      at += match[0].length;
+      break;
+    }
+  }
+  return tokens;
+}
+
+/** A trace as two lines per call: who made it and the call, then what came back, coloured by how it went. */
+export function traceTokens(trace: TraceEntry[]): Token[] {
+  return trace.flatMap((e, i) => {
+    const [name = "", ...rest] = e.call.split(" ");
+    const result = tone(e);
+    return [
+      ...(i > 0 ? [{ text: "\n", kind: "plain" as const }] : []),
+      { text: e.actor.padEnd(24), kind: "type" as const },
+      { text: " ", kind: "plain" as const },
+      { text: name, kind: "fn" as const },
+      ...(rest.length ? [{ text: ` ${rest.join(" ")}`, kind: "plain" as const }] : []),
+      ...(e.times ? [{ text: `  ×${e.times}`, kind: "num" as const }] : []),
+      { text: `\n${" ".repeat(25)}→ `, kind: "plain" as const },
+      { text: e.result, kind: result === "bad" ? ("bad" as const) : result === "good" ? ("ok" as const) : ("str" as const) },
+    ];
+  });
+}
+
+/** The same pieces, split into lines, so each line can carry its number. */
+export function linesOf(tokens: Token[]): Token[][] {
+  const lines: Token[][] = [[]];
+  for (const token of tokens) {
+    token.text.split("\n").forEach((part, i) => {
+      if (i > 0) lines.push([]);
+      if (part) lines.at(-1)!.push({ text: part, kind: token.kind });
+    });
+  }
+  return lines;
+}
+
 export function prettyJson(text: string): string {
   try {
     return JSON.stringify(JSON.parse(text), null, 2);

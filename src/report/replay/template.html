@@ -325,7 +325,23 @@ code, pre, .mono { font-family: var(--mono); }
 .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--stamp); font-weight: 600; }
 .panel { padding: 14px 16px; }
 .panel p { margin: 0 0 10px; max-width: 75ch; }
-.panel pre { margin: 0; max-height: 460px; overflow: auto; font-size: 0.78rem; line-height: 1.5; background: var(--paper); border: 1px solid var(--faint); border-radius: 6px; padding: 12px 14px; tab-size: 2; }
+/* The code, the attack and the trace read like an editor: a dark pane in either theme, with line numbers
+   that are not copied and the colours of VS Code's dark theme. */
+.editor { background: #1e1e1e; border: 1px solid #2b2b2b; border-radius: 8px; overflow: hidden; color-scheme: dark; }
+.editor-bar { display: flex; background: #252526; border-bottom: 1px solid #2b2b2b; }
+.editor-tab { font-family: var(--mono); font-size: 0.75rem; color: #e0e0e0; background: #1e1e1e; padding: 7px 14px; border-right: 1px solid #2b2b2b; border-top: 2px solid #3794ff; }
+.panel pre { margin: 0; max-height: 460px; overflow: auto; font-size: 0.8rem; line-height: 1.6; background: #1e1e1e; color: #d4d4d4; padding: 12px 16px 14px 0; tab-size: 2; counter-reset: line; }
+.panel pre ::selection { background: #264f78; }
+.panel pre .ln::before { counter-increment: line; content: counter(line); display: inline-block; width: 4ch; margin-right: 2ch; text-align: right; color: #6e7681; user-select: none; }
+.tok-kw, .tok-lit { color: #569cd6; }
+.tok-str { color: #ce9178; }
+.tok-num { color: #b5cea8; }
+.tok-com { color: #6a9955; }
+.tok-fn { color: #dcdcaa; }
+.tok-type { color: #4ec9b0; }
+.tok-prop { color: #9cdcfe; }
+.tok-bad { color: #f48771; }
+.tok-ok { color: #89d185; }
 .foot { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.82rem; display: grid; gap: 4px; }
 .foot p { margin: 0; max-width: 90ch; }
 
@@ -444,9 +460,9 @@ code, pre, .mono { font-family: var(--mono); }
           <button type="button" role="tab" id="t-attack" aria-selected="false" aria-controls="p-attack">The attack</button>
           <button type="button" role="tab" id="t-trace" aria-selected="false" aria-controls="p-trace">The trace</button>
         </div>
-        <div class="panel" role="tabpanel" id="p-code"><p id="code-note"></p><pre id="code"></pre></div>
-        <div class="panel" role="tabpanel" id="p-attack" hidden><p id="attack-note"></p><pre id="attack"></pre></div>
-        <div class="panel" role="tabpanel" id="p-trace" hidden><p>The grader’s trace of this run, exactly as recorded: who made each call, the call, and what came back.</p><pre id="trace"></pre></div>
+        <div class="panel" role="tabpanel" id="p-code"><p id="code-note"></p><div class="editor"><div class="editor-bar"><span class="editor-tab" id="code-file">solution.ts</span></div><pre id="code"></pre></div></div>
+        <div class="panel" role="tabpanel" id="p-attack" hidden><p id="attack-note"></p><div class="editor"><div class="editor-bar"><span class="editor-tab">attack.json</span></div><pre id="attack"></pre></div></div>
+        <div class="panel" role="tabpanel" id="p-trace" hidden><p>The grader’s trace of this run, exactly as recorded: who made each call, the call, and what came back.</p><div class="editor"><div class="editor-bar"><span class="editor-tab">trace.log</span></div><pre id="trace"></pre></div></div>
       </section>
     </main>
   </div>

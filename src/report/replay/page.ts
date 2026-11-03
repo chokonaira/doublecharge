@@ -10,10 +10,12 @@ import {
   codeOwner,
   describe,
   filterChoices,
+  highlight,
   intro,
   laneOf,
   ledger,
   ledgerTotal,
+  linesOf,
   nameOf,
   prettyJson,
   serviceOf,
@@ -23,11 +25,13 @@ import {
   stepCase,
   subtitle,
   tone,
+  traceTokens,
   visibleIds,
   type Episode,
   type Filters,
   type Layout,
   type ReplayData,
+  type Token,
   type TraceEntry,
   type Words,
 } from "./logic.ts";
@@ -61,6 +65,20 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, props: Props = {}, ..
   for (const [name, value] of Object.entries(props.attrs ?? {})) node.setAttribute(name, value);
   node.append(...children);
   return node;
+}
+
+/**
+ * Fills an editor pane line by line, each coloured piece a span holding plain text: a model's code is never
+ * parsed as markup. Line numbers come from the stylesheet, so copying the code does not copy them.
+ */
+function paint(pre: HTMLElement, tokens: Token[]): void {
+  const lines = linesOf(tokens);
+  pre.replaceChildren(
+    ...lines.flatMap((line, i) => [
+      el("span", { className: "ln" }, ...line.map((t) => (t.kind === "plain" ? t.text : el("span", { className: `tok-${t.kind}`, text: t.text })))),
+      ...(i < lines.length - 1 ? ["\n"] : []),
+    ]),
+  );
 }
 
 const words = (parts: Words): (Node | string)[] =>
@@ -192,13 +210,14 @@ function openCase(id: string, { play = true }: { play?: boolean } = {}): void {
   $("st-title").textContent = title;
   $("st-sub").textContent = sub;
 
-  $("code").textContent = DATA.codes[ep.code] ?? "";
+  paint($("code"), highlight(DATA.codes[ep.code] ?? "", "ts"));
+  $("code-file").textContent = `${ep.task}.ts`;
   $("code-note").textContent = ep.part === 1 ? `The code ${nameOf(ep.model)} wrote for ${ep.task}, trial ${ep.trial}, exactly as graded.` : `The code under review: ${codeOwner(ep)}.`;
   $("t-attack").hidden = ep.part !== 2;
   if (ep.part !== 2 && $("t-attack").getAttribute("aria-selected") === "true") selectTab("code");
-  $("attack").textContent = ep.attack ? prettyJson(ep.attack) : "";
+  paint($("attack"), ep.attack ? highlight(prettyJson(ep.attack), "json") : []);
   $("attack-note").textContent = ep.part === 2 ? `The attack ${nameOf(ep.model)} wrote to prove its claim, in DoubleCharge’s attack language.` : "";
-  $("trace").textContent = ep.trace.map((e) => `${e.actor.padEnd(24)} ${e.call}${e.times ? `  ×${e.times}` : ""}\n${" ".repeat(25)}→ ${e.result}`).join("\n");
+  paint($("trace"), traceTokens(ep.trace));
 
   $("scrub", HTMLInputElement).max = String(ep.trace.length);
   $("diagram-scroll").scrollTop = 0;

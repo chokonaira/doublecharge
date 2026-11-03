@@ -15,10 +15,12 @@ import {
   codeOwner,
   describe as words,
   filterChoices,
+  highlight,
   intro,
   laneOf,
   ledger,
   ledgerTotal,
+  linesOf,
   money,
   NO_FILTERS,
   prettyJson,
@@ -29,6 +31,7 @@ import {
   stepCase,
   subtitle,
   tone,
+  traceTokens,
   visibleIds,
   type Episode,
   type ReplayData,
@@ -296,5 +299,45 @@ describe("the Replay's data, case by case", () => {
 
   it("opens with counts taken from the data", () => {
     assert.match(intro(data), /the 4 scenarios the models’ code failed, and the 104 alarms reviewers backed with an attack, 97 proven and 7 overruled\. 2 more alarms' attacks could not be run\./);
+  });
+});
+
+describe("code colouring", () => {
+  const kinds = (tokens: { text: string; kind: string }[]) => tokens.filter((t) => t.kind !== "plain").map((t) => `${t.kind}:${t.text}`);
+
+  it("splits TypeScript into coloured pieces that join back to the source exactly", () => {
+    const source = "// read first\nexport async function checkout(id: string, ctx: Ctx) {\n  const order = await ctx.db.get(`order:${id}`); /* then */\n  return order.amount > 25.5 ? \"paid\" : null;\n}\n";
+    const tokens = highlight(source, "ts");
+    assert.equal(tokens.map((t) => t.text).join(""), source);
+    assert.deepEqual(kinds(tokens), [
+      "com:// read first", "kw:export", "kw:async", "kw:function", "fn:checkout", "type:Ctx", "kw:const", "kw:await",
+      "fn:get", "str:`order:${id}`", "com:/* then */", "kw:return", "num:25.5", 'str:"paid"', "lit:null",
+    ]);
+  });
+
+  it("tells JSON keys from values, and leaves unfinished strings and comments whole", () => {
+    const json = '{\n  "faults": { "createCharge": ["timeout_after"] },\n  "retries": 1, "ok": true\n}';
+    const tokens = highlight(json, "json");
+    assert.equal(tokens.map((t) => t.text).join(""), json);
+    assert.deepEqual(kinds(tokens), ['prop:"faults"', 'prop:"createCharge"', 'str:"timeout_after"', 'prop:"retries"', "num:1", 'prop:"ok"', "lit:true"]);
+    for (const odd of ['"never closed', "/* never closed", "`tick", "x.set = 1;"]) assert.equal(highlight(odd, "ts").map((t) => t.text).join(""), odd);
+  });
+
+  it("splits pieces into numbered lines without losing any text", () => {
+    const lines = linesOf(highlight("a\n\n// c\nb", "ts"));
+    assert.equal(lines.length, 4);
+    assert.deepEqual(lines[1], []);
+    assert.deepEqual(lines[2], [{ text: "// c", kind: "com" }]);
+  });
+
+  it("writes a trace as it always read, with who, what and how it went", () => {
+    const trace = [
+      { actor: "A", call: "payco.createCharge amount=2599", result: "processed, but the response was lost (timeout)" },
+      { actor: "A retry 1", call: "answer", result: "paid", times: 2 },
+    ];
+    const tokens = traceTokens(trace as never);
+    const old = trace.map((e) => `${e.actor.padEnd(24)} ${e.call}${e.times ? `  ×${e.times}` : ""}\n${" ".repeat(25)}→ ${e.result}`).join("\n");
+    assert.equal(tokens.map((t) => t.text).join(""), old);
+    assert.deepEqual(kinds(tokens), ["type:" + "A".padEnd(24), "fn:payco.createCharge", "bad:processed, but the response was lost (timeout)", "type:" + "A retry 1".padEnd(24), "fn:answer", "num:  ×2", "ok:paid"]);
   });
 });
