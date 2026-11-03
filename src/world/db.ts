@@ -53,6 +53,7 @@ export class MemoryDb implements Db {
       next = fn(clone(before));
     } catch (err) {
       record(`db.update ${key}`, `aborted (${err instanceof Error ? err.message : String(err)})`, n);
+      await pausePoint(`db.update ${key}`, "after", n);
       throw err;
     }
     this.data.set(key, clone(next));
@@ -81,6 +82,7 @@ export class MemoryDb implements Db {
       result = fn(tx);
     } catch (err) {
       record("db.transaction", `aborted (${err instanceof Error ? err.message : String(err)})`, n);
+      await pausePoint("db.transaction", "after", n);
       throw err;
     }
     for (const [key, value] of staged) {

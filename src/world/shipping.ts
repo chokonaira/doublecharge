@@ -21,6 +21,7 @@ export class Shipping implements ShippingApi {
     const fault = this.faults.shift() ?? "ok";
     if (fault === "timeout_before") {
       record(call, "timeout (never reached shipping)", n);
+      await pausePoint(call, "after", n);
       throw new ApiError("timeout");
     }
     if (opts.idempotencyKey !== undefined && this.keys.has(opts.idempotencyKey)) {

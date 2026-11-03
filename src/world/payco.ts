@@ -76,7 +76,10 @@ export class PayCo implements PayCoApi {
     await pausePoint(`payco.getCharge ${id}`, "before", n);
     const charge = this.allCharges.find((c) => c.id === id);
     record(`payco.getCharge ${id}`, charge ? `amount ${charge.amount}, refunded ${charge.amountRefunded}` : "resource_missing", n);
-    if (!charge) throw new ApiError("resource_missing");
+    if (!charge) {
+      await pausePoint(`payco.getCharge ${id}`, "after", n);
+      throw new ApiError("resource_missing");
+    }
     const seen = clone(charge);
     this.readObserver?.(seen);
     await pausePoint(`payco.getCharge ${id}`, "after", n);
@@ -159,6 +162,7 @@ export class PayCo implements PayCoApi {
     };
     if (fault === "timeout_before") {
       record(call, "timeout (never reached PayCo)", n);
+      await pausePoint(call, "after", n);
       learned("unknown");
       throw new ApiError("timeout");
     }

@@ -49,28 +49,30 @@ export async function atEveryStep(run: (step: number) => Promise<{ reached: bool
 }
 
 /**
- * Holds `actor` right after its step-th world call while `meanwhile` happens. A call that throws before
- * its after point (an aborted update, a request that never reached the service) is held at the next
- * call instead, so no step is skipped. Returns a function saying whether the hold happened.
+ * Holds `actor` right after its step-th world call while `meanwhile` happens. Every world call reaches
+ * its after point, whether it succeeded or ended in an error (an aborted update, a request that never
+ * reached the service), so no step is skipped. Returns a function saying whether the hold happened.
  */
 export function holdAfterCall(actor: string, step: number, meanwhile: () => Promise<unknown>): () => boolean {
   let held = false;
-  const run = async () => {
-    if (held) return;
-    held = true;
-    await meanwhile();
-  };
-  const disarm = [pauseOnce({ actor, when: "after", call: callMatcher("any", step), run }), pauseOnce({ actor, when: "before", call: callMatcher("any", step + 1), run })];
+  const disarm = pauseOnce({
+    actor,
+    when: "after",
+    call: callMatcher("any", step),
+    run: async () => {
+      held = true;
+      await meanwhile();
+    },
+  });
   return () => {
-    for (const d of disarm) d();
+    disarm();
     return held;
   };
 }
 
-/** Kills the instance serving `actor` right after its step-th world call, or before the next call if that one threw before its after point. */
+/** Kills the instance serving `actor` right after its step-th world call, whether that call succeeded or ended in an error. */
 export function killAfterCall(actor: string, step: number): void {
   crashOnce({ actor, when: "after", call: callMatcher("any", step) });
-  crashOnce({ actor, when: "before", call: callMatcher("any", step + 1) });
 }
 
 /**

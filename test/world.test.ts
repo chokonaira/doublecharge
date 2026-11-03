@@ -274,10 +274,29 @@ describe("instance crashes", () => {
     assert.equal(shipping.count("o1"), 1, "the second call ships, then its instance dies");
     beginRun();
   });
+
+  it("a call that ends in an error still reaches its after point, so a pause or kill set there is not skipped", async () => {
+    beginRun();
+    const payco = new PayCo({ createCharge: ["timeout_before"] });
+    const shipping = new Shipping(["timeout_before"]);
+    const fired: string[] = [];
+    pauseOnce({ actor: "A", when: "after", call: callMatcher("payco.createCharge"), run: async () => void fired.push("charge") });
+    pauseOnce({ actor: "A", when: "after", call: callMatcher("payco.getCharge"), run: async () => void fired.push("lookup") });
+    pauseOnce({ actor: "A", when: "after", call: callMatcher("shipping.ship"), run: async () => void fired.push("ship") });
+    await asActor("A", () =>
+      asInvocation(async () => {
+        await assert.rejects(payco.createCharge({ ...charge, idempotencyKey: "k" }), (e) => errorCode(e) === "timeout");
+        await assert.rejects(payco.getCharge("ch_missing"), (e) => errorCode(e) === "resource_missing");
+        await assert.rejects(shipping.ship("o1"), (e) => errorCode(e) === "timeout");
+      }),
+    );
+    assert.deepEqual(fired, ["charge", "lookup", "ship"]);
+    beginRun();
+  });
 });
 
 describe("probe choreography", () => {
-  it("a hold set after a call that throws before its after point holds at the next call instead", async () => {
+  it("a hold set after a call that ends in an error happens right there, before the caller sees the error", async () => {
     beginRun();
     const db = new MemoryDb({ seen: true });
     const order: string[] = [];
@@ -292,7 +311,7 @@ describe("probe choreography", () => {
       }),
     );
     assert.equal(held(), true);
-    assert.deepEqual(order, ["update aborted", "meanwhile", "get done"]);
+    assert.deepEqual(order, ["meanwhile", "update aborted", "get done"]);
     beginRun();
   });
 
@@ -305,7 +324,7 @@ describe("probe choreography", () => {
     beginRun();
   });
 
-  it("a kill set after a call that throws before its after point kills before the next call", async () => {
+  it("a kill set after a call that ends in an error kills right there, so the next call never happens", async () => {
     beginRun();
     const db = new MemoryDb({ seen: true });
     killAfterCall("K", 1);

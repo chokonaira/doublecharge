@@ -1,0 +1,42 @@
+{
+  "summary": "A declined press answers \"declined\" after reading the order as paid: while it was with PayCo, another press was declined too and a third, with the fixed card, paid.",
+  "faults": {
+    "createCharge": [
+      "decline",
+      "decline"
+    ]
+  },
+  "steps": [
+    [
+      {
+        "id": "P",
+        "action": "pay"
+      }
+    ],
+    [
+      {
+        "id": "A",
+        "action": "pay",
+        "pause": {
+          "when": "after",
+          "call": "payco.createCharge",
+          "occurrence": 1,
+          "meanwhile": [
+            [
+              {
+                "id": "C",
+                "action": "pay"
+              }
+            ],
+            [
+              {
+                "id": "B",
+                "action": "pay"
+              }
+            ]
+          ]
+        }
+      }
+    ]
+  ]
+}
