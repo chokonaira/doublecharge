@@ -17,6 +17,7 @@ import {
   MemoryDb,
   pauseOnce,
   PayCo,
+  pendingCalls,
   planCrash,
   record,
   Shipping,
@@ -256,12 +257,45 @@ describe("instance crashes", () => {
     beginRun();
   });
 
-  it("anything an instance's top-level code starts for later belongs to a dead instance", async () => {
+  it("anything an instance's top-level code starts for later belongs to a dead instance, whose calls never return", async () => {
     const db = new MemoryDb();
     // What the virtual clock does with a timer: run it in the context it was set in.
     const later = await asInstanceLoad(async () => AsyncLocalStorage.snapshot());
-    await assert.rejects(later(() => db.set("swept", true)), InstanceCrashed);
+    const call = later(() => db.set("swept", true)).then(
+      () => "returned",
+      () => "refused",
+    );
+    const outcome = await Promise.race([call, new Promise<string>((resolve) => setTimeout(() => resolve("parked"), 20))]);
+    assert.equal(outcome, "parked", "a dead instance's call neither returns nor fails");
     assert.equal(db.peek("swept"), undefined);
+  });
+
+  it("a killed instance that catches the kill and calls again at once is parked for good: nobody waits, and the clock stays free", async () => {
+    beginRun();
+    const db = new MemoryDb();
+    crashOnce({ actor: "Z", when: "after", call: callMatcher("db.get") });
+    let calls = 0;
+    let returned = false;
+    const request = asActor("Z", () =>
+      asInvocation(async () => {
+        for (;;) {
+          try {
+            calls++;
+            await db.get("x");
+            returned = true;
+            return;
+          } catch {
+            // A zombie that treats the kill as transient and tries again at once, forever.
+          }
+        }
+      }),
+    );
+    await assert.rejects(request, InstanceCrashed);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.equal(calls, 2, "the zombie tried once more and was parked there");
+    assert.equal(returned, false);
+    assert.equal(pendingCalls(), 0, "a parked zombie is not in flight, so virtual time can move on");
+    beginRun();
   });
 
   it("counts a targeted call once, at both of its points, even when an earlier one failed before its after point", async () => {

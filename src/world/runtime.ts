@@ -167,7 +167,7 @@ export const callsSincePlan = (): number => callsMade;
 /**
  * Loads an instance. Its top-level code runs here, outside any request, and the instance is gone once
  * the request it serves ends; so anything that code starts for later (a background timer, say) belongs
- * to a dead instance, and its world calls are refused.
+ * to a dead instance, and its world calls never return.
  */
 export async function asInstanceLoad<T>(load: () => Promise<T>): Promise<T> {
   const invocation = newInvocation();
@@ -182,7 +182,8 @@ export async function asInstanceLoad<T>(load: () => Promise<T>): Promise<T> {
  * Runs one call into the solution on its own instance. If the instance is killed, the caller sees
  * InstanceCrashed at once, whatever the solution does afterwards: the connection dropped and nothing
  * was returned. The kill reaches the solution as a throw, and code that catches it and carries on is a
- * zombie no caller can reach: its world calls are refused, and nobody waits for it to finish.
+ * zombie no caller can reach: its next world call parks it for good (see `tick`), so it can neither
+ * spin nor hold the virtual clock, and nobody waits for it to finish.
  */
 export async function asInvocation<T>(fn: () => Promise<T>): Promise<T> {
   const invocation = newInvocation();
@@ -207,7 +208,7 @@ function kill(invocation: Invocation, mode: CrashMode): never {
   keep({
     actor: currentActor() ?? "scenario",
     call: "instance killed",
-    result: mode === "before" ? "before this request's next call" : "right after the call above, before seeing its result",
+    result: mode === "before" ? "before this request's next call" : "right after the call above, before seeing how it ended",
   });
   throw new InstanceCrashed("instance was killed mid-request");
 }
@@ -280,7 +281,7 @@ export function freshAttempt(): void {
 /**
  * Every world method calls this after its scheduling point and before acting. Returns the call's
  * number (0 outside the solution), kills the instance if a crash is planned for this call, and
- * refuses calls from an instance that is already dead.
+ * refuses a call from an instance that is already dead (one is normally parked at `tick` first).
  */
 export function enter(): number {
   const invocation = invocations.getStore();
@@ -434,10 +435,15 @@ export async function busy<T>(work: Promise<T>): Promise<T> {
 
 /**
  * Every world call awaits this first, so concurrent requests interleave the way they would over
- * a network. The chaos engine swaps in a scheduler that explores other interleavings.
+ * a network. The chaos engine swaps in a scheduler that explores other interleavings. A dead
+ * instance (killed, or left over from an earlier run) is parked here for good, the way a killed
+ * process never runs again: its call never returns, it is not in flight, and nobody waits for it.
  */
-export const tick = (): Promise<void> =>
-  busy(scheduler ? scheduler.yield() : new Promise<void>((resolve) => setImmediate(resolve)));
+export const tick = (): Promise<void> => {
+  const invocation = invocations.getStore();
+  if (invocation && (!alive.has(invocation) || runOf.get(invocation) !== epoch)) return new Promise<void>(() => {});
+  return busy(scheduler ? scheduler.yield() : new Promise<void>((resolve) => setImmediate(resolve)));
+};
 
 /** Values cross the "network" by copy, so mutating a returned object never writes through. */
 export const clone = <T>(value: T): T => (value === undefined ? value : structuredClone(value));
