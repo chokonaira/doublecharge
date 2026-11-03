@@ -24,3 +24,11 @@ jobs:
       - run: npm run audit
       # Every published verdict and every number in the README, re-derived from the raw outputs.
       - run: npm run reproduce
+
+  # The container path the README offers: the same checks and reproduction on a pinned Node.
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -t doublecharge .
+      - run: docker run --rm doublecharge

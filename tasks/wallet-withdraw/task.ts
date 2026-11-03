@@ -23,6 +23,8 @@ function world(faults: Fault[] = []) {
     conserved(): [boolean, string] {
       const { wallet, paidOut } = state();
       if (typeof wallet !== "number") return [false, `wallet:u1 is no longer a plain number (now ${JSON.stringify(wallet)})`];
+      const astray = payco.payouts.filter((p) => p.destination !== "u1" || p.currency !== "EUR");
+      if (astray.length) return [false, `a payout went to ${astray.map((p) => `${p.destination} in ${p.currency}`).join(", ")}, not to u1 in EUR`];
       return [wallet + paidOut === START, `wallet ${wallet} + paid out ${paidOut} = ${wallet + paidOut}, user started with ${START}`];
     },
     paidOut(expected: number): [boolean, string] {

@@ -26,6 +26,7 @@
     "fill": "node --no-warnings src/cli/fill.ts",
     "replay": "node --no-warnings src/cli/replay.ts",
     "art": "node --no-warnings src/cli/art.ts",
+    "summary": "node --no-warnings src/cli/summary.ts",
     "reproduce": "node --no-warnings src/cli/reproduce.ts"
   },
   "devDependencies": {

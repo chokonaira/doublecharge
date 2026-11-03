@@ -344,6 +344,7 @@ code, pre, .mono { font-family: var(--mono); }
 .tok-ok { color: #89d185; }
 .foot { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.82rem; display: grid; gap: 4px; }
 .foot p { margin: 0; max-width: 90ch; }
+#intro-short { display: none; }
 
 @media (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
@@ -353,6 +354,9 @@ code, pre, .mono { font-family: var(--mono); }
   .court { grid-template-columns: minmax(0, 1fr); }
   .court > div + div { border-left: 0; border-top: 1px solid var(--rule); }
   .keys { display: none; }
+  /* The two-sentence intro, so the first case starts above the fold. */
+  #intro { display: none; }
+  #intro-short { display: block; }
   /* Every lane fits the screen, so the whole run is in view; long names are cut with an ellipsis. */
   .diagram { min-width: 0; }
   .lanes, .row, .lifelines { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
@@ -366,6 +370,7 @@ code, pre, .mono { font-family: var(--mono); }
   <header class="top">
     <h1>DoubleCharge <span>Replay</span></h1>
     <p id="intro">Every failure and every reviewer’s attack that ran in the final runs, played back call by call from the grader’s own traces.</p>
+    <p id="intro-short"></p>
     <div class="top-actions">
       <a class="about" href="https://github.com/chokonaira/doublecharge#readme">How this eval works</a>
       <button type="button" class="theme" id="b-theme" aria-pressed="false">Dark mode</button>

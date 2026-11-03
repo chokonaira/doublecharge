@@ -12,6 +12,7 @@ import {
   filterChoices,
   highlight,
   intro,
+  introShort,
   laneOf,
   ledger,
   ledgerTotal,
@@ -659,6 +660,7 @@ function setTheme(dark: boolean, { save = false }: { save?: boolean } = {}): voi
   if (dark) document.documentElement.dataset.theme = "dark";
   else delete document.documentElement.dataset.theme;
   $("b-theme").setAttribute("aria-pressed", String(dark));
+  $("b-theme").textContent = dark ? "Light mode" : "Dark mode";
   if (!save) return;
   try {
     if (dark) localStorage.setItem(THEME_KEY, "dark");
@@ -773,6 +775,7 @@ phone.addEventListener("change", () => {
 // ---- Opening line, footer and first case -------------------------------------------------------------
 
 $("intro").textContent = intro(DATA);
+$("intro-short").textContent = introShort(DATA);
 $("foot").replaceChildren(
   el(
     "p",
