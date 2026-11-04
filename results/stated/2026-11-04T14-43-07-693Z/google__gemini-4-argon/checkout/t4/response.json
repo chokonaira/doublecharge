@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "```ts\nimport { randomUUID } from \"node:crypto\";\n\ninterface Order {\n  id: string;\n  customerId: string;\n  amount: number;\n  currency: string;\n  status: \"pending\" | \"paid\" | \"declined\";\n}\n\ninterface CheckoutAttempt {\n  idempotencyKey: string;\n  chargeId?: string;\n}\n\ninterface Ctx {\n  db: Db;\n  payco: PayCo;\n  shipping: unknown;\n}\n\ninterface Db {\n  get<T>(key: string): Promise<T | undefined>;\n  set<T>(key: string, value: T): Promise<void>;\n  insertIfAbsent<T>(key: string, value: T): Promise<boolean>;\n  update<T>(key: string, fn: (current: T | undefined) => T): Promise<T>;\n  transaction<T>(fn: (tx: Tx) => T): Promise<T>;\n  delete(key: string): Promise<void>;\n}\n\ninterface Tx {\n  get<T>(key: string): T | undefined;\n  set<T>(key: string, value: T): void;\n  delete(key: string): void;\n}\n\ninterface PayCo {\n  createCharge(p: {\n    amount: number;\n    currency: string;\n    customerId: string;\n    metadata?: Record<string, string>;\n    idempotencyKey?: string;\n  }): Promise<Charge>;\n  getCharge(id: string): Promise<Charge>;\n  listCharges(filter?: { customerId?: string }): Promise<Charge[]>;\n  createPayout(p: {\n    amount: number;\n    currency: string;\n    destination: string;\n    idempotencyKey?: string;\n  }): Promise<Payout>;\n}\n\ninterface Charge {\n  id: string;\n  amount: number;\n  currency: string;\n  customerId: string;\n  metadata: Record<string, string>;\n  status: \"succeeded\";\n  amountRefunded: number;\n  created: number;\n}\n\ninterface Payout {\n  id: string;\n  amount: number;\n  currency: string;\n  destination: string;\n  created: number;\n}\n\nexport async function checkout(orderId: string, ctx: Ctx): Promise<\"paid\" | \"declined\"> {\n  const orderKey = `order:${orderId}`;\n  const attemptKey = `checkout_attempt:${orderId}`;\n  const candidateIdempotencyKey = `order:${orderId}:attempt:${randomUUID()}`;\n\n  // Atomically read the order and ensure a persistent idempotency key exists for the active attempt.\n  // Reusing the persisted key across crashes/timeouts prevents double charges, while clearing it\n  // only after a definitive \"card_declined\" allows a fresh attempt after the user updates their card.\n  const { order, idempotencyKey } = await ctx.db.transaction((tx) => {\n    const currentOrder = tx.get<Order>(orderKey);\n    if (!currentOrder) {\n      throw new Error(`Order not found: ${orderId}`);\n    }\n\n    if (currentOrder.status === \"paid\") {\n      return { order: currentOrder, idempotencyKey: \"\" };\n    }\n\n    let attempt = tx.get<CheckoutAttempt>(attemptKey);\n    if (!attempt) {\n      attempt = { idempotencyKey: candidateIdempotencyKey };\n      tx.set(attemptKey, attempt);\n    }\n\n    return { order: currentOrder, idempotencyKey: attempt.idempotencyKey };\n  });\n\n  if (order.status === \"paid\") {\n    return \"paid\";\n  }\n\n  try {\n    const charge = await ctx.payco.createCharge({\n      amount: order.amount,\n      currency: order.currency,\n      customerId: order.customerId,\n      metadata: { orderId: order.id },\n      idempotencyKey,\n    });\n\n    await ctx.db.transaction((tx) => {\n      const currentOrder = tx.get<Order>(orderKey);\n      if (!currentOrder) {\n        throw new Error(`Order not found: ${orderId}`);\n      }\n      tx.set<Order>(orderKey, {\n        ...currentOrder,\n        status: \"paid\",\n      });\n      tx.set<CheckoutAttempt>(attemptKey, {\n        idempotencyKey,\n        chargeId: charge.id,\n      });\n    });\n\n    return \"paid\";\n  } catch (err: unknown) {\n    const code = (err as { code?: unknown })?.code;\n\n    if (code === \"card_declined\") {\n      return await ctx.db.transaction((tx) => {\n        const currentOrder = tx.get<Order>(orderKey);\n        if (!currentOrder) {\n          throw new Error(`Order not found: ${orderId}`);\n        }\n\n        if (currentOrder.status === \"paid\") {\n          return \"paid\" as const;\n        }\n\n        tx.set<Order>(orderKey, {\n          ...currentOrder,\n          status: \"declined\",\n        });\n\n        // Clear the attempt key so the next click (after the customer updates their card)\n        // generates a new idempotency key instead of replaying the cached decline.\n        const currentAttempt = tx.get<CheckoutAttempt>(attemptKey);\n        if (currentAttempt && currentAttempt.idempotencyKey === idempotencyKey) {\n          tx.delete(attemptKey);\n        }\n\n        return \"declined\" as const;\n      });\n    }\n\n    // For timeouts or unexpected errors, leave `attemptKey` intact in the Db so\n    // subsequent retries reuse the same idempotencyKey and never double-charge.\n    throw err;\n  }\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "google/gemini-4-argon",
+  "provider": "Google",
+  "usage": {
+    "prompt_tokens": 1358,
+    "completion_tokens": 1762,
+    "total_tokens": 3120,
+    "cost": 0.020336,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.020336,
+      "upstream_inference_prompt_cost": 0.002716,
+      "upstream_inference_completions_cost": 0.01762
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 433,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

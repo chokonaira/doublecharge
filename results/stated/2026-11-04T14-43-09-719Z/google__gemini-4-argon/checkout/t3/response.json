@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "```ts\ninterface Order {\n  id: string;\n  customerId: string;\n  amount: number;\n  currency: string;\n  status: \"pending\" | \"paid\" | \"declined\";\n}\n\ninterface CheckoutState {\n  attempt: number;\n  inFlight: boolean;\n}\n\nexport async function checkout(orderId: string, ctx: Ctx): Promise<\"paid\" | \"declined\"> {\n  const orderKey = `order:${orderId}`;\n  const stateKey = `checkout:${orderId}`;\n\n  const txResult = await ctx.db.transaction((tx) => {\n    const order = tx.get<Order>(orderKey);\n    if (!order) {\n      throw new Error(`Order not found: ${orderId}`);\n    }\n    if (order.status === \"paid\") {\n      return { alreadyPaid: true as const };\n    }\n\n    const state = tx.get<CheckoutState>(stateKey);\n    const attempt = state?.inFlight ? state.attempt : (state?.attempt ?? 0) + 1;\n\n    if (!state?.inFlight) {\n      tx.set<CheckoutState>(stateKey, { attempt, inFlight: true });\n    }\n\n    return {\n      alreadyPaid: false as const,\n      order,\n      attempt,\n    };\n  });\n\n  if (txResult.alreadyPaid) {\n    return \"paid\";\n  }\n\n  const { order, attempt } = txResult;\n  const idempotencyKey = `${orderId}:${attempt}:${order.customerId}:${order.amount}:${order.currency}`;\n\n  try {\n    await ctx.payco.createCharge({\n      amount: order.amount,\n      currency: order.currency,\n      customerId: order.customerId,\n      metadata: { orderId },\n      idempotencyKey,\n    });\n  } catch (err: unknown) {\n    const code = (err as { code?: string } | null)?.code;\n    if (code === \"card_declined\") {\n      return await ctx.db.transaction((tx) => {\n        const currentOrder = tx.get<Order>(orderKey);\n        if (!currentOrder) {\n          throw new Error(`Order not found: ${orderId}`);\n        }\n        if (currentOrder.status === \"paid\") {\n          return \"paid\";\n        }\n\n        const currentState = tx.get<CheckoutState>(stateKey);\n        if (currentState && currentState.attempt > attempt) {\n          throw new Error(\"Checkout attempt was superseded by a newer attempt\");\n        }\n\n        tx.set<Order>(orderKey, { ...currentOrder, status: \"declined\" });\n        tx.set<CheckoutState>(stateKey, { attempt, inFlight: false });\n        return \"declined\";\n      });\n    }\n    throw err;\n  }\n\n  await ctx.db.transaction((tx) => {\n    const currentOrder = tx.get<Order>(orderKey);\n    if (currentOrder && currentOrder.status !== \"paid\") {\n      tx.set<Order>(orderKey, { ...currentOrder, status: \"paid\" });\n    }\n    const currentState = tx.get<CheckoutState>(stateKey);\n    if (!currentState || currentState.attempt <= attempt) {\n      tx.set<CheckoutState>(stateKey, { attempt, inFlight: false });\n    }\n  });\n\n  return \"paid\";\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "google/gemini-4-argon",
+  "provider": "Google",
+  "usage": {
+    "prompt_tokens": 1504,
+    "completion_tokens": 5807,
+    "total_tokens": 7311,
+    "cost": 0.061078,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.061078,
+      "upstream_inference_prompt_cost": 0.003008,
+      "upstream_inference_completions_cost": 0.05807
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 5018,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

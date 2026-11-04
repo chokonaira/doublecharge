@@ -1,0 +1,12 @@
+[
+  {
+    "scenario": "a single payment",
+    "points": 10,
+    "failures": 0
+  },
+  {
+    "scenario": "declined, card updated, pay again",
+    "points": 22,
+    "failures": 0
+  }
+]

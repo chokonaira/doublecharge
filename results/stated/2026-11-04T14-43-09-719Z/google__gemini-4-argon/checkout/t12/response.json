@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "```ts\ninterface Order {\n  id: string;\n  customerId: string;\n  amount: number;\n  currency: string;\n  status: \"pending\" | \"paid\" | \"declined\";\n}\n\ninterface CheckoutState {\n  attempt: number;\n  status: \"in_flight\" | \"declined\" | \"paid\";\n}\n\nfunction isErrorWithCode(err: unknown, code: string): boolean {\n  return (\n    typeof err === \"object\" &&\n    err !== null &&\n    \"code\" in err &&\n    (err as { code?: unknown }).code === code\n  );\n}\n\nexport async function checkout(orderId: string, ctx: Ctx): Promise<\"paid\" | \"declined\"> {\n  const orderKey = `order:${orderId}`;\n  const stateKey = `checkout:${orderId}`;\n\n  const init = await ctx.db.transaction((tx) => {\n    const order = tx.get<Order>(orderKey);\n    if (!order) {\n      throw new Error(`Order not found: ${orderId}`);\n    }\n    const state = tx.get<CheckoutState>(stateKey);\n\n    if (order.status === \"paid\" || state?.status === \"paid\") {\n      if (order.status !== \"paid\") {\n        tx.set<Order>(orderKey, { ...order, status: \"paid\" });\n      }\n      if (state?.status !== \"paid\") {\n        tx.set<CheckoutState>(stateKey, { attempt: state?.attempt ?? 1, status: \"paid\" });\n      }\n      return { done: true as const, result: \"paid\" as const };\n    }\n\n    let attempt: number;\n    if (!state) {\n      attempt = 1;\n      tx.set<CheckoutState>(stateKey, { attempt, status: \"in_flight\" });\n    } else if (state.status === \"in_flight\") {\n      attempt = state.attempt;\n    } else {\n      // Previous attempt was resolved and reported as declined; start a new attempt key\n      // so an updated card can be charged.\n      attempt = state.attempt + 1;\n      tx.set<CheckoutState>(stateKey, { attempt, status: \"in_flight\" });\n    }\n\n    return {\n      done: false as const,\n      attempt,\n      order,\n    };\n  });\n\n  if (init.done) {\n    return init.result;\n  }\n\n  let { attempt, order } = init;\n\n  while (true) {\n    const idempotencyKey = `checkout:${orderId}:${attempt}`;\n    try {\n      await ctx.payco.createCharge({\n        amount: order.amount,\n        currency: order.currency,\n        customerId: order.customerId,\n        metadata: { orderId },\n        idempotencyKey,\n      });\n\n      await ctx.db.transaction((tx) => {\n        const currentOrder = tx.get<Order>(orderKey) ?? order;\n        if (currentOrder.status !== \"paid\") {\n          tx.set<Order>(orderKey, { ...currentOrder, status: \"paid\" });\n        }\n        const currentState = tx.get<CheckoutState>(stateKey);\n        tx.set<CheckoutState>(stateKey, {\n          attempt: Math.max(currentState?.attempt ?? 0, attempt),\n          status: \"paid\",\n        });\n      });\n\n      return \"paid\";\n    } catch (err) {\n      if (!isErrorWithCode(err, \"card_declined\")) {\n        throw err;\n      }\n\n      const next = await ctx.db.transaction((tx) => {\n        const currentOrder = tx.get<Order>(orderKey) ?? order;\n        const currentState = tx.get<CheckoutState>(stateKey);\n\n        if (currentOrder.status === \"paid\" || currentState?.status === \"paid\") {\n          if (currentOrder.status !== \"paid\") {\n            tx.set<Order>(orderKey, { ...currentOrder, status: \"paid\" });\n          }\n          return { done: true as const, result: \"paid\" as const };\n        }\n\n        if (!currentState || currentState.attempt === attempt) {\n          tx.set<Order>(orderKey, { ...currentOrder, status: \"declined\" });\n          tx.set<CheckoutState>(stateKey, { attempt, status: \"declined\" });\n          return { done: true as const, result: \"declined\" as const };\n        }\n\n        // A concurrent request already resolved our attempt and started a newer one.\n        if (currentState.status === \"in_flight\") {\n          return {\n            done: false as const,\n            attempt: currentState.attempt,\n            order: currentOrder,\n          };\n        }\n\n        if (currentOrder.status !== \"declined\") {\n          tx.set<Order>(orderKey, { ...currentOrder, status: \"declined\" });\n        }\n        return { done: true as const, result: \"declined\" as const };\n      });\n\n      if (next.done) {\n        return next.result;\n      }\n\n      attempt = next.attempt;\n      order = next.order;\n    }\n  }\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "google/gemini-4-argon",
+  "provider": "Google",
+  "usage": {
+    "prompt_tokens": 1504,
+    "completion_tokens": 21365,
+    "total_tokens": 22869,
+    "cost": 0.216658,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.216658,
+      "upstream_inference_prompt_cost": 0.003008,
+      "upstream_inference_completions_cost": 0.21365
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 20150,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

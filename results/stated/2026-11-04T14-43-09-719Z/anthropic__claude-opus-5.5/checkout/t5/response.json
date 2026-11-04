@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "The design comes down to one rule: each charge attempt gets its own PayCo idempotency key, saved in the `Db` before PayCo is called.\n\n- **Retries reuse the key.** A crash, timeout or double-click goes back to PayCo with the same key. PayCo then returns the first result, so the customer is never charged twice.\n- **A new key only after a recorded decline.** Pressing Pay after a decline starts a new attempt, so the updated card is really tried. Starting that attempt is a single atomic step, so concurrent requests cannot start two.\n- **The order is read again before answering.** \"paid\" is returned only after a successful charge, or when the order already reads \"paid\".\n\n```ts\nimport { randomUUID } from \"node:crypto\";\n\ninterface Order {\n  id: string;\n  customerId: string;\n  amount: number;\n  currency: string;\n  status: \"pending\" | \"paid\" | \"declined\";\n}\n\ninterface Attempt {\n  n: number;\n  key: string;\n  state: \"inflight\" | \"declined\" | \"paid\";\n  // Parameters frozen when the attempt was created, so a retry of the same key\n  // sends identical parameters (avoids idempotency_mismatch).\n  amount: number;\n  currency: string;\n  customerId: string;\n  chargeId?: string;\n}\n\nfunction codeOf(e: unknown): string | undefined {\n  return e && typeof e === \"object\" && typeof (e as any).code === \"string\" ? (e as any).code : undefined;\n}\n\nexport async function checkout(orderId: string, ctx: Ctx): Promise<\"paid\" | \"declined\"> {\n  const { db, payco } = ctx;\n  const orderKey = `order:${orderId}`;\n  const attemptKey = `checkout:${orderId}`;\n\n  // Step 1: atomically decide which charge attempt (idempotency key) this request uses.\n  // - in-flight attempt (crash/timeout/concurrent click): reuse its key, so we never double charge.\n  // - no attempt, or last attempt declined: start a new attempt with a fresh key, so the\n  //   customer's (possibly updated) card is actually tried again.\n  const decision = await db.transaction((tx) => {\n    const order = tx.get<Order>(orderKey);\n    if (!order) throw Object.assign(new Error(`order ${orderId} not found`), { code: \"not_found\" });\n    if (order.status === \"paid\") return { kind: \"paid\" as const };\n    const cur = tx.get<Attempt>(attemptKey);\n    if (cur && cur.state === \"paid\") {\n      // Charge succeeded but the order write was lost; repair it.\n      tx.set<Order>(orderKey, { ...order, status: \"paid\" });\n      return { kind: \"paid\" as const };\n    }\n    if (cur && cur.state === \"inflight\") return { kind: \"charge\" as const, attempt: cur };\n    const next: Attempt = {\n      n: cur ? cur.n + 1 : 1,\n      key: `checkout:${orderId}:${cur ? cur.n + 1 : 1}:${randomUUID()}`,\n      state: \"inflight\",\n      amount: order.amount,\n      currency: order.currency,\n      customerId: order.customerId,\n    };\n    tx.set<Attempt>(attemptKey, next);\n    return { kind: \"charge\" as const, attempt: next };\n  });\n\n  if (decision.kind === \"paid\") return \"paid\";\n  const attempt = decision.attempt;\n\n  // Step 2: charge with the attempt's key. Retrying a timed-out request with the same key\n  // is always safe. If it keeps timing out we throw; the caller's retry reuses the key.\n  let outcome: { ok: true; chargeId: string } | { ok: false } | undefined;\n  for (let i = 0; i < 3 && !outcome; i++) {\n    try {\n      const charge = await payco.createCharge({\n        amount: attempt.amount,\n        currency: attempt.currency,\n        customerId: attempt.customerId,\n        metadata: { orderId, attempt: String(attempt.n) },\n        idempotencyKey: attempt.key,\n      });\n      outcome = { ok: true, chargeId: charge.id };\n    } catch (e) {\n      const code = codeOf(e);\n      if (code === \"card_declined\") outcome = { ok: false };\n      else if (code === \"timeout\") continue;\n      else throw e;\n    }\n  }\n  if (!outcome) {\n    throw Object.assign(new Error(\"payment provider timed out\"), { code: \"timeout\" });\n  }\n\n  // Step 3: record the result atomically.\n  const result = outcome;\n  return db.transaction((tx) => {\n    const order = tx.get<Order>(orderKey);\n    const cur = tx.get<Attempt>(attemptKey);\n    const sameAttempt = cur && cur.n === attempt.n;\n\n    if (result.ok) {\n      if (sameAttempt) tx.set<Attempt>(attemptKey, { ...cur!, state: \"paid\", chargeId: result.chargeId });\n      if (order && order.status !== \"paid\") tx.set<Order>(orderKey, { ...order, status: \"paid\" });\n      return \"paid\" as const;\n    }\n\n    // Declined. If the order is already paid (we read it as paid), the truth for the customer is \"paid\".\n    if (order && order.status === \"paid\") return \"paid\" as const;\n    if (cur && cur.state === \"paid\") {\n      if (order) tx.set<Order>(orderKey, { ...order, status: \"paid\" });\n      return \"paid\" as const;\n    }\n    if (sameAttempt && cur!.state === \"inflight\") {\n      tx.set<Attempt>(attemptKey, { ...cur!, state: \"declined\" });\n    }\n    // A later attempt can only start after this attempt was recorded declined, so the\n    // customer was not charged through this order's attempts before this request started.\n    if (order && order.status !== \"declined\") tx.set<Order>(orderKey, { ...order, status: \"declined\" });\n    return \"declined\" as const;\n  });\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "anthropic/claude-opus-5.5",
+  "provider": "Claude Platform on AWS",
+  "usage": {
+    "prompt_tokens": 2003,
+    "completion_tokens": 3533,
+    "total_tokens": 5536,
+    "cost": 0.078672,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.078672,
+      "upstream_inference_prompt_cost": 0.008012,
+      "upstream_inference_completions_cost": 0.07066
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 1541,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

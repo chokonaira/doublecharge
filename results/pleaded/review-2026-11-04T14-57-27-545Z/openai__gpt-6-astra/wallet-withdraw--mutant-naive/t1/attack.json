@@ -1,0 +1,28 @@
+{
+  "summary": "Two withdrawals overwrite each other's wallet debits, leaving 7000 in the wallet after paying out 6000.",
+  "steps": [
+    [
+      {
+        "id": "A",
+        "action": "withdraw",
+        "requestId": "r1",
+        "amount": 3000,
+        "pause": {
+          "when": "after",
+          "call": "db.get",
+          "occurrence": 1,
+          "meanwhile": [
+            [
+              {
+                "id": "B",
+                "action": "withdraw",
+                "requestId": "r2",
+                "amount": 3000
+              }
+            ]
+          ]
+        }
+      }
+    ]
+  ]
+}

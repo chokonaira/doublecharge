@@ -1,0 +1,14 @@
+{
+  "summary": "Instance is killed right after shipping; the redelivery finds no event marker and ships the order a second time (no idempotency key).",
+  "steps": [
+    [
+      {
+        "id": "S",
+        "action": "deliver",
+        "event": "charge.succeeded",
+        "retries": 1,
+        "crash": { "when": "after", "call": "shipping.ship", "occurrence": 1 }
+      }
+    ]
+  ]
+}

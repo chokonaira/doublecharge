@@ -1,0 +1,18 @@
+{
+  "summary": "A crash after recording the event permanently skips payment accounting, order updates, and shipping.",
+  "steps": [
+    [
+      {
+        "id": "S",
+        "action": "deliver",
+        "event": "charge.succeeded",
+        "retries": 1,
+        "crash": {
+          "when": "after",
+          "call": "db.insertIfAbsent",
+          "occurrence": 1
+        }
+      }
+    ]
+  ]
+}

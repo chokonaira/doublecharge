@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "```ts\n// Checkout with crash-safe, retry-safe, multi-instance-safe charging.\n//\n// Design:\n// - Each payment *attempt* for an order has a stable PayCo idempotency key:\n//   `checkout:<orderId>:<n>`. Any retry of the same attempt, from any instance,\n//   after any crash, reuses the same key, so PayCo charges at most once per attempt.\n// - We only move to attempt n+1 once attempt n is known to be DECLINED, which\n//   PayCo guarantees created no charge. Therefore at most one attempt can ever\n//   succeed, so the customer is charged at most once per order.\n// - The step from n to n+1 happens inside a Db transaction. Concurrent\n//   \"Pay again\" presses therefore agree on a single new attempt number.\n// - The amount and currency are frozen into the attempt record. If the order\n//   changes, a retry still sends identical parameters for the same key.\n// - On timeout we retry a few times inline with the same key. That is always\n//   safe. If it still times out we throw. The caller's retry resumes the same\n//   attempt with the same key.\n\ntype OrderStatus = \"pending\" | \"paid\" | \"declined\";\n\ninterface Order {\n  id: string;\n  customerId: string;\n  amount: number;\n  currency: string;\n  status: OrderStatus;\n}\n\ninterface AttemptRecord {\n  n: number; // current attempt number\n  amount: number;\n  currency: string;\n  customerId: string;\n  declinedN: number; // highest attempt number known to be declined (0 = none)\n  chargeId?: string; // set once an attempt succeeded\n}\n\nconst orderKey = (id: string) => `order:${id}`;\nconst attemptKey = (id: string) => `checkout:${id}`;\n\nfunction errCode(e: unknown): string | undefined {\n  const c = (e as { code?: unknown } | null)?.code;\n  return typeof c === \"string\" ? c : undefined;\n}\n\nexport async function checkout(orderId: string, ctx: Ctx): Promise<\"paid\" | \"declined\"> {\n  const { db, payco } = ctx;\n\n  // Step 1: atomically decide which attempt this request belongs to.\n  const decision = db.transaction((tx) => {\n    const order = tx.get<Order>(orderKey(orderId));\n    if (!order) {\n      const e = new Error(`order ${orderId} not found`) as Error & { code: string };\n      e.code = \"order_not_found\";\n      throw e;\n    }\n    if (order.status === \"paid\") {\n      return { done: true as const };\n    }\n\n    let rec = tx.get<AttemptRecord>(attemptKey(orderId));\n    if (!rec) {\n      rec = {\n        n: 1,\n        amount: order.amount,\n        currency: order.currency,\n        customerId: order.customerId,\n        declinedN: 0,\n      };\n      tx.set(attemptKey(orderId), rec);\n    } else if (rec.chargeId) {\n      // A charge already succeeded, but the order update was lost\n      // (for example, a crash between the two writes). Repair it.\n      tx.set<Order>(orderKey(orderId), { ...order, status: \"paid\" });\n      return { done: true as const };\n    } else if (rec.declinedN >= rec.n) {\n      // The current attempt was declined, and the customer pressed Pay again.\n      // Start a fresh attempt. No charge exists for any earlier attempt.\n      rec = {\n        ...rec,\n        n: rec.n + 1,\n        amount: order.amount,\n        currency: order.currency,\n        customerId: order.customerId,\n      };\n      tx.set(attemptKey(orderId), rec);\n      if (order.status === \"declined\") {\n        tx.set<Order>(orderKey(orderId), { ...order, status: \"pending\" });\n      }\n    }\n    // Otherwise the attempt rec.n is in progress or unknown (for example, a crash\n    // or timeout). Resume it with the same idempotency key.\n    return { done: false as const, rec };\n  });\n\n  const d = await decision;\n  if (d.done) return \"paid\";\n  const rec = d.rec;\n  const n = rec.n;\n  const idempotencyKey = `checkout:${orderId}:${n}`;\n\n  // Step 2: charge. Retry timeouts inline with the same key, which is safe per PayCo.\n  let charge: Charge | undefined;\n  let declined = false;\n  const maxTries = 3;\n  for (let i = 0; i < maxTries; i++) {\n    try {\n      charge = await payco.createCharge({\n        amount: rec.amount,\n        currency: rec.currency,\n        customerId: rec.customerId,\n        metadata: { orderId, attempt: String(n) },\n        idempotencyKey,\n      });\n      break;\n    } catch (e) {\n      const code = errCode(e);\n      if (code === \"card_declined\") {\n        declined = true;\n        break;\n      }\n      if (code === \"timeout\" && i < maxTries - 1) {\n        await new Promise((r) => setTimeout(r, 200 * (i + 1)));\n        continue;\n      }\n      // A final timeout, or any other error. The outcome is unknown, so we throw.\n      // The customer's retry, or the reconciliation job, resumes attempt n\n      // with the same key.\n      throw e;\n    }\n  }\n\n  if (charge) {\n    const chargeId = charge.id;\n    await db.transaction((tx) => {\n      const cur = tx.get<AttemptRecord>(attemptKey(orderId));\n      if (cur && cur.n === n) tx.set(attemptKey(orderId), { ...cur, chargeId });\n      const order = tx.get<Order>(orderKey(orderId));\n      // The money has been taken, so the order is paid. This overrides any\n      // \"declined\" status, for example one set by reconciliation.\n      if (order && order.status !== \"paid\") {\n        tx.set<Order>(orderKey(orderId), { ...order, status: \"paid\" });\n      }\n    });\n    return \"paid\";\n  }\n\n  if (declined) {\n    const result = await db.transaction((tx) => {\n      const order = tx.get<Order>(orderKey(orderId));\n      if (order?.status === \"paid\") return \"paid\" as const;\n      const cur = tx.get<AttemptRecord>(attemptKey(orderId));\n      if (cur && cur.n === n && cur.declinedN < n) {\n        tx.set(attemptKey(orderId), { ...cur, declinedN: n });\n      }\n      // Only mark the order declined if no newer attempt has started.\n      if (order && cur && cur.n === n) {\n        tx.set<Order>(orderKey(orderId), { ...order, status: \"declined\" });\n      }\n      return \"declined\" as const;\n    });\n    return result;\n  }\n\n  // This is unreachable: the loop either sets charge or declined, or throws.\n  throw Object.assign(new Error(\"checkout: unexpected state\"), { code: \"internal\" });\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "anthropic/claude-opus-5.5",
+  "provider": "Claude Platform on AWS",
+  "usage": {
+    "prompt_tokens": 1823,
+    "completion_tokens": 3524,
+    "total_tokens": 5347,
+    "cost": 0.077772,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.077772,
+      "upstream_inference_prompt_cost": 0.007292,
+      "upstream_inference_completions_cost": 0.07048
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 1213,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

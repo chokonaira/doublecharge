@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "Each Pay attempt uses a stable PayCo idempotency key, and that key changes only after a decline.\n\n- **Same attempt number for retries.** The key is `checkout:<orderId>:<attempt>`, and the attempt number is stored in the Db. Retries, timeouts, crashes and double clicks all reuse the same key. PayCo then either charges once or returns the result it already recorded.\n- **New key after a decline.** The attempt number goes up only when a decline is recorded. That lets the customer update their card and press Pay again with a fresh key, instead of getting the cached decline back.\n- **At most one successful charge per order.** A new attempt starts only after the previous one was definitively declined.\n\n```ts\n// Local type declarations (provided by runtime; declared here for clarity only).\ninterface Order {\n  id: string;\n  customerId: string;\n  amount: number;\n  currency: string;\n  status: \"pending\" | \"paid\" | \"declined\";\n}\n\ninterface CheckoutState {\n  attempt: number;   // current attempt number; the idempotency key derives from it\n  chargeId?: string; // set once paid\n}\n\nfunction errCode(e: unknown): string | undefined {\n  return e && typeof e === \"object\" && typeof (e as any).code === \"string\"\n    ? (e as any).code\n    : undefined;\n}\n\nexport async function checkout(orderId: string, ctx: Ctx): Promise<\"paid\" | \"declined\"> {\n  const { db, payco } = ctx;\n  const orderKey = `order:${orderId}`;\n  const stateKey = `checkout:${orderId}`;\n\n  // Read the order and the current attempt number together.\n  const { order, state } = await db.transaction((tx) => {\n    const order = tx.get<Order>(orderKey);\n    if (!order) return { order: undefined, state: undefined };\n    let state = tx.get<CheckoutState>(stateKey);\n    if (!state) {\n      state = { attempt: 1 };\n      tx.set(stateKey, state);\n    }\n    return { order, state };\n  });\n\n  if (!order) {\n    const e = new Error(`order ${orderId} not found`);\n    (e as any).code = \"order_not_found\";\n    throw e;\n  }\n  if (order.status === \"paid\") return \"paid\";\n\n  const attempt = state!.attempt;\n  const idempotencyKey = `checkout:${orderId}:${attempt}`;\n\n  let charge: Charge;\n  try {\n    charge = await payco.createCharge({\n      amount: order.amount,\n      currency: order.currency,\n      customerId: order.customerId,\n      // Metadata lets the reconciliation job match charges to orders.\n      metadata: { orderId, attempt: String(attempt) },\n      idempotencyKey,\n    });\n  } catch (e) {\n    if (errCode(e) === \"card_declined\") {\n      // Record the decline and open a new attempt. This happens only if no\n      // concurrent request has already done so, and only if the order is not\n      // already paid. A decline is definitive, so starting a new attempt\n      // cannot lead to a double charge.\n      const result = await db.transaction((tx): \"paid\" | \"declined\" => {\n        const cur = tx.get<Order>(orderKey);\n        if (cur?.status === \"paid\") return \"paid\";\n        const st = tx.get<CheckoutState>(stateKey) ?? { attempt };\n        if (st.attempt === attempt) {\n          tx.set<CheckoutState>(stateKey, { attempt: attempt + 1 });\n        }\n        if (cur) tx.set<Order>(orderKey, { ...cur, status: \"declined\" });\n        return \"declined\";\n      });\n      return result;\n    }\n    // timeout: the charge state is unknown. Throw so the customer retries.\n    // The retry reuses the same idempotency key, which is safe.\n    // idempotency_mismatch or other errors: rethrow and let the app show\n    // \"try again\". The reconciliation job handles anything left stuck.\n    throw e;\n  }\n\n  // Charge succeeded: mark the order paid. If we crash before this write,\n  // a retry gets the same charge back from PayCo and lands here again.\n  await db.transaction((tx) => {\n    const cur = tx.get<Order>(orderKey);\n    if (cur) tx.set<Order>(orderKey, { ...cur, status: \"paid\" });\n    const st = tx.get<CheckoutState>(stateKey) ?? { attempt };\n    tx.set<CheckoutState>(stateKey, { ...st, chargeId: charge.id });\n  });\n  return \"paid\";\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "anthropic/claude-opus-5.5",
+  "provider": "Claude Platform on AWS",
+  "usage": {
+    "prompt_tokens": 1823,
+    "completion_tokens": 2370,
+    "total_tokens": 4193,
+    "cost": 0.054692,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.054692,
+      "upstream_inference_prompt_cost": 0.007292,
+      "upstream_inference_completions_cost": 0.0474
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 863,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

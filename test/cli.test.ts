@@ -376,6 +376,16 @@ describe("eval, regrade and chaos commands", () => {
     assert.match(readFileSync(join(statedDir, "summary.md"), "utf8"), /^Prompt variant: stated\. The checkout prompt states the rule/);
   });
 
+  it("power prints the simulated power of the pre-registered tests, seeded", async () => {
+    const run = await cli("power.ts", ["--runs", "20", "--seed", "3"]);
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stdout, /^20 simulated experiments per row, seed 3/);
+    assert.match(run.stdout, /^section 21: control at the published checkout rates .*: \d+ in 100$/m);
+    assert.match(run.stdout, /^section 22: no difference \(0\.98 in both arms\): false positives: \d+ in 100$/m);
+    const again = await cli("power.ts", ["--runs", "20", "--seed", "3"]);
+    assert.equal(again.stdout, run.stdout, "the same seed gives the same figures");
+  });
+
   it("eval refuses an unknown task", async () => {
     const run = await cli("eval.ts", ["--tasks", "nope", "--out", join(out, "x"), "--allow-dirty"]);
     assert.notEqual(run.status, 0);

@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "```ts\nimport { randomUUID } from \"node:crypto\";\n\ntype Outcome = \"paid\" | \"declined\";\n\ninterface Order {\n  id: string;\n  customerId: string;\n  amount: number;\n  currency: string;\n  status: \"pending\" | Outcome;\n}\n\ninterface Tx {\n  get<T>(key: string): T | undefined;\n  set<T>(key: string, value: T): void;\n}\n\ninterface Db {\n  transaction<T>(fn: (tx: Tx) => T): Promise<T>;\n}\n\ninterface ChargeParams {\n  amount: number;\n  currency: string;\n  customerId: string;\n  metadata: Record<string, string>;\n  idempotencyKey: string;\n}\n\ninterface PayCo {\n  createCharge(params: ChargeParams): Promise<{ id: string }>;\n}\n\ninterface Ctx {\n  db: Db;\n  payco: PayCo;\n  shipping: unknown;\n}\n\ninterface Attempt {\n  params: ChargeParams;\n  status: \"pending\" | Outcome;\n  chargeId?: string;\n}\n\nfunction hasCode(error: unknown, code: string): boolean {\n  return (\n    typeof error === \"object\" &&\n    error !== null &&\n    \"code\" in error &&\n    error.code === code\n  );\n}\n\nexport async function checkout(\n  orderId: string,\n  ctx: Ctx,\n): Promise<\"paid\" | \"declined\"> {\n  const orderKey = `order:${orderId}`;\n  const attemptKey = `checkout:attempt:${orderId}`;\n  const candidateIdempotencyKey = `checkout:${randomUUID()}`;\n\n  const preparation = await ctx.db.transaction<\n    { kind: \"paid\" } | { kind: \"attempt\"; attempt: Attempt }\n  >((tx) => {\n    const order = tx.get<Order>(orderKey);\n    if (!order) {\n      throw new Error(`Order not found: ${orderId}`);\n    }\n\n    if (order.status === \"paid\") {\n      return { kind: \"paid\" };\n    }\n\n    const previous = tx.get<Attempt>(attemptKey);\n\n    // Concurrent calls and retries share both the key and the exact parameters.\n    if (previous?.status === \"pending\") {\n      return { kind: \"attempt\", attempt: previous };\n    }\n\n    if (previous?.status === \"paid\") {\n      throw new Error(\"Inconsistent checkout state: paid attempt on unpaid order\");\n    }\n\n    // Only a definitive decline permits a new attempt. A new key allows PayCo\n    // to try the customer's saved card again rather than replay the decline.\n    const attempt: Attempt = {\n      status: \"pending\",\n      params: {\n        amount: order.amount,\n        currency: order.currency,\n        customerId: order.customerId,\n        metadata: { orderId },\n        idempotencyKey: candidateIdempotencyKey,\n      },\n    };\n\n    tx.set(attemptKey, attempt);\n    tx.set<Order>(orderKey, { ...order, status: \"pending\" });\n    return { kind: \"attempt\", attempt };\n  });\n\n  if (preparation.kind === \"paid\") {\n    return \"paid\";\n  }\n\n  const { attempt } = preparation;\n  let outcome: Outcome;\n  let chargeId: string | undefined;\n\n  try {\n    const charge = await ctx.payco.createCharge(attempt.params);\n    chargeId = charge.id;\n    outcome = \"paid\";\n  } catch (error: unknown) {\n    if (!hasCode(error, \"card_declined\")) {\n      // In particular, a timeout leaves the durable attempt pending. Even if\n      // PayCo charged successfully, retrying this same key cannot charge again.\n      throw error;\n    }\n    outcome = \"declined\";\n  }\n\n  // Keep DB failures outside the PayCo catch: they must never be interpreted\n  // as payment failures. A crash here is recovered by replaying the same key.\n  return ctx.db.transaction<Outcome>((tx) => {\n    const order = tx.get<Order>(orderKey);\n    const current = tx.get<Attempt>(attemptKey);\n\n    if (!order || !current) {\n      throw new Error(\"Checkout state disappeared\");\n    }\n\n    if (\n      current.params.idempotencyKey !== attempt.params.idempotencyKey\n    ) {\n      // Another caller already recorded this attempt's decline and started\n      // a newer attempt. Never let an old response overwrite that newer state.\n      if (outcome !== \"declined\") {\n        throw new Error(\"Inconsistent checkout state: successful attempt replaced\");\n      }\n      return order.status === \"paid\" ? \"paid\" : \"declined\";\n    }\n\n    if (current.status !== \"pending\" && current.status !== outcome) {\n      throw new Error(\"Conflicting PayCo results for one idempotency key\");\n    }\n\n    tx.set<Attempt>(attemptKey, {\n      params: current.params,\n      status: outcome,\n      ...(chargeId === undefined ? {} : { chargeId }),\n    });\n    tx.set<Order>(orderKey, { ...order, status: outcome });\n\n    return outcome;\n  });\n\n  // API limitation: after a persisted decline, a retry following a lost response\n  // is indistinguishable from a deliberate new press of Pay. Both start a new\n  // attempt. Distinguishing them would require a caller-provided attempt token.\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "openai/gpt-6-astra",
+  "provider": "OpenAI",
+  "usage": {
+    "prompt_tokens": 1232,
+    "completion_tokens": 2142,
+    "total_tokens": 3374,
+    "cost": 0.108359,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 1229,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.108359,
+      "upstream_inference_prompt_cost": 0.001259,
+      "upstream_inference_completions_cost": 0.1071
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 1034,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

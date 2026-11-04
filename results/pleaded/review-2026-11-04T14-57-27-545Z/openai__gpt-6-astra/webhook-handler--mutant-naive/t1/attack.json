@@ -1,0 +1,11 @@
+{
+  "summary": "Duplicate succeeded deliveries credit the seller twice and ship the order twice.",
+  "steps": [
+    [
+      { "id": "S1", "action": "deliver", "event": "charge.succeeded" }
+    ],
+    [
+      { "id": "S2", "action": "deliver", "event": "charge.succeeded" }
+    ]
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "status": "confirmed",
+  "how": "as written",
+  "detail": "the wallet (7000) plus 0 paid out does not equal 10000",
+  "trace": [
+    {
+      "actor": "A",
+      "call": "db.insertIfAbsent withdrawal:r1 {\"status\":\"reserving\"}",
+      "result": "stored"
+    },
+    {
+      "actor": "A",
+      "call": "db.update wallet:u1",
+      "result": "10000 -> 7000"
+    },
+    {
+      "actor": "A",
+      "call": "db.set withdrawal:r1",
+      "result": "{\"status\":\"reserved\"}"
+    },
+    {
+      "actor": "A",
+      "call": "db.get withdrawal:r1",
+      "result": "{\"status\":\"reserved\"}"
+    },
+    {
+      "actor": "A",
+      "call": "payco.createPayout {\"amount\":3000,\"currency\":\"EUR\",\"destination\":\"u1\"} key=withdrawal:r1",
+      "result": "payout_rejected"
+    },
+    {
+      "actor": "A",
+      "call": "db.update withdrawal:r1",
+      "result": "{\"status\":\"reserved\"} -> {\"status\":\"rejected\"}"
+    },
+    {
+      "actor": "A",
+      "call": "instance killed",
+      "result": "right after the call above, before seeing how it ended"
+    },
+    {
+      "actor": "A",
+      "call": "answer",
+      "result": "none: the connection dropped"
+    },
+    {
+      "actor": "A retry 1",
+      "call": "db.insertIfAbsent withdrawal:r1 {\"status\":\"reserving\"}",
+      "result": "already present"
+    },
+    {
+      "actor": "A retry 1",
+      "call": "db.get withdrawal:r1",
+      "result": "{\"status\":\"rejected\"}"
+    },
+    {
+      "actor": "A retry 1",
+      "call": "answer",
+      "result": "rejected"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "summary": "A successful charge whose response is lost is duplicated on retry, charging the customer twice.",
+  "faults": {
+    "createCharge": ["timeout_after", "ok"]
+  },
+  "steps": [
+    [
+      {
+        "id": "A",
+        "action": "pay",
+        "retries": 1
+      }
+    ]
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "summary": "A Shipping timeout after creating the shipment causes redelivery to credit the seller twice and ship the order twice.",
+  "faults": {
+    "ship": ["timeout_after"]
+  },
+  "steps": [
+    [
+      {
+        "id": "S",
+        "action": "deliver",
+        "event": "charge.succeeded",
+        "retries": 1
+      }
+    ]
+  ]
+}

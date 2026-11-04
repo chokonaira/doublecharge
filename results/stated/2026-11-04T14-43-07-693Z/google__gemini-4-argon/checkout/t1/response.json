@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "```ts\nimport { randomUUID } from \"node:crypto\";\n\ninterface Order {\n  id: string;\n  customerId: string;\n  amount: number;\n  currency: string;\n  status: \"pending\" | \"paid\" | \"declined\";\n}\n\ninterface CheckoutState {\n  status: \"charging\" | \"paid\" | \"declined\";\n  attemptId: string;\n  startedAt: number;\n  chargeId?: string;\n}\n\nconst LOCK_LEASE_MS = 45_000;\n\nexport async function checkout(orderId: string, ctx: Ctx): Promise<\"paid\" | \"declined\"> {\n  const orderKey = `order:${orderId}`;\n  const stateKey = `checkout_state:${orderId}`;\n\n  // 1. Coordinate access and determine the idempotency key for this payment attempt.\n  //    We persist the attemptId before calling PayCo so that if the process crashes or\n  //    PayCo times out, the retry uses the exact same idempotency key.\n  //    If a charge is declined, we transition state to \"declined\" so a subsequent click\n  //    (after the user updates their saved card) generates a fresh attemptId.\n  const { order, attemptId, alreadyPaid } = await ctx.db.transaction((tx) => {\n    const ord = tx.get<Order>(orderKey);\n    if (!ord) {\n      throw new Error(`Order not found: ${orderId}`);\n    }\n\n    if (ord.status === \"paid\") {\n      return { order: ord, attemptId: \"\", alreadyPaid: true };\n    }\n\n    const state = tx.get<CheckoutState>(stateKey);\n    if (state?.status === \"paid\") {\n      ord.status = \"paid\";\n      tx.set(orderKey, ord);\n      return { order: ord, attemptId: state.attemptId, alreadyPaid: true };\n    }\n\n    const now = Date.now();\n\n    if (state?.status === \"charging\") {\n      if (now - state.startedAt < LOCK_LEASE_MS) {\n        // Another request is actively processing this order (e.g. double-click).\n        // Throw so the duplicate call fails safely while the first completes, or retries later.\n        const err = new Error(\"Checkout already in progress for this order\") as Error & { code?: string };\n        err.code = \"concurrent_checkout\";\n        throw err;\n      }\n      // Previous attempt timed out or its instance died mid-flight.\n      // Reuse the same attemptId to safely query/retry PayCo idempotently.\n      state.startedAt = now;\n      tx.set(stateKey, state);\n      return { order: ord, attemptId: state.attemptId, alreadyPaid: false };\n    }\n\n    // No prior state, or previous attempt resulted in \"declined\".\n    // Start a brand-new attempt with a new idempotency key so PayCo tries the card again.\n    const newAttemptId = randomUUID();\n    tx.set<CheckoutState>(stateKey, {\n      status: \"charging\",\n      attemptId: newAttemptId,\n      startedAt: now,\n    });\n\n    return { order: ord, attemptId: newAttemptId, alreadyPaid: false };\n  });\n\n  if (alreadyPaid) {\n    return \"paid\";\n  }\n\n  // 2. Call PayCo with the persisted idempotency key.\n  try {\n    const charge = await ctx.payco.createCharge({\n      amount: order.amount,\n      currency: order.currency,\n      customerId: order.customerId,\n      metadata: { orderId: order.id, attemptId },\n      idempotencyKey: `checkout:${order.id}:${attemptId}`,\n    });\n\n    // 3a. Charge succeeded: atomically mark both order and state as \"paid\".\n    await ctx.db.transaction((tx) => {\n      const ord = tx.get<Order>(orderKey) ?? order;\n      ord.status = \"paid\";\n      tx.set(orderKey, ord);\n      tx.set<CheckoutState>(stateKey, {\n        status: \"paid\",\n        attemptId,\n        startedAt: Date.now(),\n        chargeId: charge.id,\n      });\n    });\n\n    return \"paid\";\n  } catch (err: unknown) {\n    const code = (err as { code?: string } | null)?.code;\n\n    if (code === \"card_declined\") {\n      // 3b. Card was declined: atomically mark order and state as \"declined\"\n      //     (unless a concurrent retry already succeeded).\n      const finalStatus = await ctx.db.transaction((tx) => {\n        const ord = tx.get<Order>(orderKey) ?? order;\n        const currentState = tx.get<CheckoutState>(stateKey);\n\n        if (ord.status === \"paid\" || currentState?.status === \"paid\") {\n          ord.status = \"paid\";\n          tx.set(orderKey, ord);\n          return \"paid\" as const;\n        }\n\n        ord.status = \"declined\";\n        tx.set(orderKey, ord);\n\n        if (!currentState || currentState.attemptId === attemptId) {\n          tx.set<CheckoutState>(stateKey, {\n            status: \"declined\",\n            attemptId,\n            startedAt: Date.now(),\n          });\n        }\n        return \"declined\" as const;\n      });\n\n      return finalStatus;\n    }\n\n    // 3c. Transient/unknown error (e.g., `timeout`).\n    //     Keep `stateKey` in \"charging\" with the same `attemptId`, but clear `startedAt`\n    //     so the user's immediate retry is not blocked by the lease and reuses `attemptId`.\n    try {\n      await ctx.db.transaction((tx) => {\n        const currentState = tx.get<CheckoutState>(stateKey);\n        if (currentState && currentState.attemptId === attemptId && currentState.status === \"charging\") {\n          currentState.startedAt = 0;\n          tx.set(stateKey, currentState);\n        }\n      });\n    } catch {\n      // Ignore cleanup errors; lease expiration will still allow retries after LOCK_LEASE_MS.\n    }\n\n    throw err;\n  }\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "google/gemini-4-argon",
+  "provider": "Google",
+  "usage": {
+    "prompt_tokens": 1358,
+    "completion_tokens": 1467,
+    "total_tokens": 2825,
+    "cost": 0.017386,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.017386,
+      "upstream_inference_prompt_cost": 0.002716,
+      "upstream_inference_completions_cost": 0.01467
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

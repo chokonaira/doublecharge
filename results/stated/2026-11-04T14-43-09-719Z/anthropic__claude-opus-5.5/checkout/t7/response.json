@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "Each attempt gets a stable PayCo idempotency key, stored in the Db. A retry after a crash or timeout lands on any instance, reuses that key and gets PayCo's recorded result. The attempt number only moves forward after a decline has been recorded, so pressing Pay again with an updated card makes a fresh charge request.\n\n```ts\n// Types Ctx, Db, Tx, PayCo, Charge are provided by the runtime.\n\ninterface Order {\n  id: string;\n  customerId: string;\n  amount: number;\n  currency: string;\n  status: \"pending\" | \"paid\" | \"declined\";\n  chargeId?: string;\n}\n\ninterface AttemptState {\n  n: number; // current attempt number; bumped only after a recorded decline of attempt n\n}\n\nconst orderKey = (id: string) => `order:${id}`;\nconst attemptKey = (id: string) => `checkoutAttempt:${id}`;\nconst chargeIdemKey = (id: string, n: number) => `checkout:${id}:${n}`;\n\nfunction codeOf(e: unknown): string | undefined {\n  return e && typeof e === \"object\" && typeof (e as any).code === \"string\" ? (e as any).code : undefined;\n}\n\nexport async function checkout(orderId: string, ctx: Ctx): Promise<\"paid\" | \"declined\"> {\n  const { db, payco } = ctx;\n\n  // 1. Read the order and the current attempt number together (atomically).\n  const start = db.transaction((tx: Tx) => {\n    const order = tx.get<Order>(orderKey(orderId));\n    if (!order) return { order: undefined, n: 0 };\n    let st = tx.get<AttemptState>(attemptKey(orderId));\n    if (!st) {\n      st = { n: 1 };\n      tx.set(attemptKey(orderId), st);\n    }\n    return { order, n: st.n };\n  });\n  const { order, n } = await start;\n  if (!order) {\n    const err: any = new Error(`order ${orderId} not found`);\n    err.code = \"order_not_found\";\n    throw err;\n  }\n  if (order.status === \"paid\") return \"paid\";\n\n  // 2. Charge with a stable idempotency key for this attempt.\n  //    - If an earlier request with this key succeeded (and crashed before\n  //      recording it), PayCo returns that success: no double charge.\n  //    - If it was declined, PayCo returns that decline. The decline was then\n  //      never reported to the customer, because reporting happens only after\n  //      the attempt number is bumped.\n  //    - A timed-out request is not recorded by PayCo, so retrying the same key is safe.\n  const key = chargeIdemKey(orderId, n);\n  let charge: Charge | undefined;\n  let declined = false;\n  const MAX_TRIES = 3;\n  for (let i = 0; ; i++) {\n    try {\n      charge = await payco.createCharge({\n        amount: order.amount,\n        currency: order.currency,\n        customerId: order.customerId,\n        metadata: { orderId, attempt: String(n) },\n        idempotencyKey: key,\n      });\n      break;\n    } catch (e) {\n      const code = codeOf(e);\n      if (code === \"card_declined\") {\n        declined = true;\n        break;\n      }\n      if (code === \"timeout\" && i < MAX_TRIES - 1) continue;\n      // Timeout after retries, idempotency_mismatch, or anything else: we don't\n      // know the outcome (or it is unsafe to guess). Throw without touching state.\n      // The customer's retry reuses the same key and resolves the true outcome.\n      throw e;\n    }\n  }\n\n  if (charge) {\n    // The customer has been charged: record it as paid, whatever the stored\n    // status currently says.\n    await db.transaction((tx: Tx) => {\n      const cur = tx.get<Order>(orderKey(orderId));\n      if (!cur) return;\n      tx.set(orderKey(orderId), { ...cur, status: \"paid\", chargeId: charge!.id });\n    });\n    return \"paid\";\n  }\n\n  // 3. Declined. In one transaction:\n  //    - If the order is already paid, the customer was charged (by a\n  //      concurrent attempt), so tell them \"paid\".\n  //    - Otherwise mark the order declined and advance the attempt number, so\n  //      the next Pay press makes a fresh charge (e.g. with an updated card).\n  //    The bump only happens if the attempt number is still n, so concurrent\n  //    requests that shared key n don't skip attempts.\n  const result = await db.transaction((tx: Tx) => {\n    const cur = tx.get<Order>(orderKey(orderId));\n    if (!cur) return \"declined\" as const;\n    if (cur.status === \"paid\") return \"paid\" as const;\n    const st = tx.get<AttemptState>(attemptKey(orderId)) ?? { n };\n    if (st.n === n) tx.set(attemptKey(orderId), { n: n + 1 });\n    tx.set(orderKey(orderId), { ...cur, status: \"declined\" });\n    return \"declined\" as const;\n  });\n  void declined;\n  return result;\n}\n```\n\nHow the returned answer stays true:\n\n- **Crash after a successful charge:** the order is not yet marked paid, so the next retry uses the same key. PayCo returns the original success, the order is marked paid, and the customer is charged only once.\n- **Crash after a decline:** the retry uses the same key and gets the recorded decline. The customer was never told about that decline, so returning \"declined\" is correct. The same transaction records it and advances the attempt number.\n- **Pay pressed after a reported decline:** the attempt number was advanced before the customer saw \"declined\". The new request therefore uses a new key and makes a fresh charge request.\n- **Timeouts:** the function retries a few times with the same key, which is safe. If the outcome is still unknown, it throws without changing anything. The customer's retry reuses the same key and gets the real outcome.\n- **Order already paid:** if the order reads as \"paid\" at the start, the function returns \"paid\" without charging again. It also returns \"paid\" if the order turns out to be paid when the decline is being recorded.\n- **Concurrent requests on the same attempt:** they share one key, so PayCo performs one charge and returns the same result to all of them. The attempt number only advances if it is still the one that was declined, so no attempt is skipped.\n\n**Limitation:** if the order's amount or currency changed between attempts, PayCo rejects the reused key with `idempotency_mismatch`. The function throws in that case rather than guessing."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "anthropic/claude-opus-5.5",
+  "provider": "Claude Platform on AWS",
+  "usage": {
+    "prompt_tokens": 2003,
+    "completion_tokens": 3959,
+    "total_tokens": 5962,
+    "cost": 0.087192,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.087192,
+      "upstream_inference_prompt_cost": 0.008012,
+      "upstream_inference_completions_cost": 0.07918
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 1788,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

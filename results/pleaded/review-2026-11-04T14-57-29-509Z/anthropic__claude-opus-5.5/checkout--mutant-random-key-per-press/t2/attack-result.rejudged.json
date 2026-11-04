@@ -1,0 +1,57 @@
+{
+  "status": "confirmed",
+  "how": "as written",
+  "detail": "the customer was charged 5198 for an order of 2599; after settling the customer was charged 5198 and the order is \"paid\"",
+  "trace": [
+    {
+      "actor": "A",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
+    },
+    {
+      "actor": "A",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\"} key=6357828a-b901-4bff-9047-2e082b8baeaf",
+      "result": "processed"
+    },
+    {
+      "actor": "A",
+      "call": "instance killed",
+      "result": "right after the call above, before seeing how it ended"
+    },
+    {
+      "actor": "A",
+      "call": "answer",
+      "result": "none: the connection dropped"
+    },
+    {
+      "actor": "A retry 1",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
+    },
+    {
+      "actor": "A retry 1",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\"} key=cf65fa5f-759c-49eb-8f15-fd9ef1648a55",
+      "result": "processed"
+    },
+    {
+      "actor": "A retry 1",
+      "call": "db.update order:o1",
+      "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend... -> {\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"paid\"}"
+    },
+    {
+      "actor": "A retry 1",
+      "call": "answer",
+      "result": "paid"
+    },
+    {
+      "actor": "final press settle 1",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"paid\"}"
+    },
+    {
+      "actor": "final press settle 1",
+      "call": "answer",
+      "result": "paid"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "status": "confirmed",
+  "how": "as written",
+  "detail": "error: livelock: more than 2000 world calls without time moving on",
+  "trace": [
+    {
+      "actor": "A",
+      "call": "db.insertIfAbsent withdrawal:r1 {\"status\":\"reserving\"}",
+      "result": "stored"
+    },
+    {
+      "actor": "A",
+      "call": "db.update wallet:u1",
+      "result": "10000 -> 7000"
+    },
+    {
+      "actor": "A",
+      "call": "instance killed",
+      "result": "right after the call above, before seeing how it ended"
+    },
+    {
+      "actor": "A",
+      "call": "answer",
+      "result": "none: the connection dropped"
+    },
+    {
+      "actor": "A retry 1",
+      "call": "db.insertIfAbsent withdrawal:r1 {\"status\":\"reserving\"}",
+      "result": "already present"
+    },
+    {
+      "actor": "A retry 1",
+      "call": "db.get withdrawal:r1",
+      "result": "{\"status\":\"reserving\"}",
+      "times": 1999
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "```ts\nimport { randomUUID } from \"node:crypto\";\n\n// Only the runtime capabilities needed by checkout are declared here.\ninterface Ctx {\n  db: {\n    transaction<T>(fn: (tx: Tx) => T): Promise<T>;\n  };\n  payco: {\n    createCharge(params: {\n      amount: number;\n      currency: string;\n      customerId: string;\n      metadata?: Record<string, string>;\n      idempotencyKey?: string;\n    }): Promise<{ id: string; status: \"succeeded\" }>;\n  };\n}\n\ninterface Tx {\n  get<T>(key: string): T | undefined;\n  set<T>(key: string, value: T): void;\n}\n\ninterface Order {\n  id: string;\n  customerId: string;\n  amount: number;\n  currency: string;\n  status: \"pending\" | \"paid\" | \"declined\";\n}\n\ninterface Attempt {\n  idempotencyKey: string;\n  orderId: string;\n  customerId: string;\n  amount: number;\n  currency: string;\n  status: \"active\" | \"paid\" | \"declined\";\n  chargeId?: string;\n}\n\ntype Result = \"paid\" | \"declined\";\n\nfunction readOrder(tx: Tx, key: string, orderId: string): Order {\n  const order = tx.get<Order>(key);\n  if (!order) throw new Error(`Order not found: ${orderId}`);\n  if (order.id !== orderId) throw new Error(\"Order ID mismatch\");\n  return order;\n}\n\nfunction assertSameTerms(order: Order, attempt: Attempt): void {\n  // Changing an order while payment is unresolved cannot safely be handled\n  // with these APIs (there is no cancellation/refund operation). Leave the\n  // durable attempt intact for reconciliation rather than charge again.\n  if (\n    order.id !== attempt.orderId ||\n    order.customerId !== attempt.customerId ||\n    order.amount !== attempt.amount ||\n    order.currency !== attempt.currency\n  ) {\n    throw new Error(\"Order payment details changed during checkout\");\n  }\n}\n\nfunction isCardDeclined(error: unknown): boolean {\n  return (\n    typeof error === \"object\" &&\n    error !== null &&\n    \"code\" in error &&\n    error.code === \"card_declined\"\n  );\n}\n\nexport async function checkout(\n  orderId: string,\n  ctx: Ctx,\n): Promise<\"paid\" | \"declined\"> {\n  const orderKey = `order:${orderId}`;\n  const attemptKey = `checkout:attempt:${orderId}`;\n  const candidateKey = `checkout:${randomUUID()}`;\n\n  const prepared = await ctx.db.transaction<\n    { paid: true } | { paid: false; attempt: Attempt }\n  >((tx) => {\n    const order = readOrder(tx, orderKey, orderId);\n    if (order.status === \"paid\") return { paid: true };\n\n    const existing = tx.get<Attempt>(attemptKey);\n    if (existing?.status === \"active\") {\n      assertSameTerms(order, existing);\n      return { paid: false, attempt: existing };\n    }\n\n    if (existing?.status === \"paid\") {\n      throw new Error(\"Inconsistent paid order state\");\n    }\n\n    // A confirmed decline ends an attempt. A subsequent invocation gets a\n    // fresh key, allowing PayCo to try the customer's updated saved card.\n    const attempt: Attempt = {\n      idempotencyKey: candidateKey,\n      orderId,\n      customerId: order.customerId,\n      amount: order.amount,\n      currency: order.currency,\n      status: \"active\",\n    };\n\n    tx.set(attemptKey, attempt);\n    tx.set<Order>(orderKey, { ...order, status: \"pending\" });\n    return { paid: false, attempt };\n  });\n\n  if (prepared.paid) return \"paid\";\n\n  const attempt = prepared.attempt;\n  let outcome: Result;\n  let chargeId: string | undefined;\n\n  try {\n    // Persisting the key and all parameters BEFORE this call makes concurrent\n    // calls and retries after crashes safe, even if the response is lost.\n    const charge = await ctx.payco.createCharge({\n      amount: attempt.amount,\n      currency: attempt.currency,\n      customerId: attempt.customerId,\n      metadata: { orderId: attempt.orderId },\n      idempotencyKey: attempt.idempotencyKey,\n    });\n    chargeId = charge.id;\n    outcome = \"paid\";\n  } catch (error: unknown) {\n    if (!isCardDeclined(error)) {\n      // A timeout is not a decline. Keep this attempt active so a retry uses\n      // exactly the same key. Never replace it on an ambiguous failure.\n      throw error;\n    }\n    outcome = \"declined\";\n  }\n\n  return ctx.db.transaction<Result>((tx) => {\n    const order = readOrder(tx, orderKey, orderId);\n    if (order.status === \"paid\") return \"paid\";\n\n    const current = tx.get<Attempt>(attemptKey);\n    if (!current) throw new Error(\"Missing checkout attempt\");\n\n    if (current.idempotencyKey !== attempt.idempotencyKey) {\n      // Another invocation already recorded this attempt's decline and\n      // started a new attempt. A late response must not overwrite that work.\n      if (outcome === \"declined\") return \"declined\";\n      throw new Error(\"Successful checkout attempt was unexpectedly replaced\");\n    }\n\n    assertSameTerms(order, attempt);\n\n    if (current.status !== \"active\" && current.status !== outcome) {\n      throw new Error(\"Conflicting checkout outcome\");\n    }\n\n    const completed: Attempt =\n      outcome === \"paid\"\n        ? { ...current, status: \"paid\", chargeId }\n        : { ...current, status: \"declined\" };\n\n    // Both writes commit together; no lock or process-local state is needed.\n    tx.set(attemptKey, completed);\n    tx.set<Order>(orderKey, { ...order, status: outcome });\n    return outcome;\n  });\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "openai/gpt-6-astra",
+  "provider": "OpenAI",
+  "usage": {
+    "prompt_tokens": 1232,
+    "completion_tokens": 2287,
+    "total_tokens": 3519,
+    "cost": 0.115609,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 1229,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.115609,
+      "upstream_inference_prompt_cost": 0.001259,
+      "upstream_inference_completions_cost": 0.11435
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 1034,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}

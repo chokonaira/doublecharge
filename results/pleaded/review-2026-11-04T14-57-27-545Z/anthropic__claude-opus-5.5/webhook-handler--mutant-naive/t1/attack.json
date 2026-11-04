@@ -1,0 +1,7 @@
+{
+  "summary": "Duplicate delivery of charge.succeeded ships the order twice and credits the seller 2000 instead of 1000.",
+  "steps": [
+    [{ "id": "S1", "action": "deliver", "event": "charge.succeeded" }],
+    [{ "id": "S2", "action": "deliver", "event": "charge.succeeded" }]
+  ]
+}

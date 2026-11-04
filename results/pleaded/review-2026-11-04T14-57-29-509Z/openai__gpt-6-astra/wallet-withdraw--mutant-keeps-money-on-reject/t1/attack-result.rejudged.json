@@ -1,0 +1,37 @@
+{
+  "status": "confirmed",
+  "how": "as written",
+  "detail": "the wallet (7000) plus 0 paid out does not equal 10000",
+  "trace": [
+    {
+      "actor": "A",
+      "call": "db.insertIfAbsent withdrawal:r1 \"reserving\"",
+      "result": "stored"
+    },
+    {
+      "actor": "A",
+      "call": "db.update wallet:u1",
+      "result": "10000 -> 7000"
+    },
+    {
+      "actor": "A",
+      "call": "db.set withdrawal:r1",
+      "result": "\"reserved\""
+    },
+    {
+      "actor": "A",
+      "call": "db.get withdrawal:r1",
+      "result": "\"reserved\""
+    },
+    {
+      "actor": "A",
+      "call": "payco.createPayout {\"amount\":3000,\"currency\":\"EUR\",\"destination\":\"u1\"} key=r1",
+      "result": "payout_rejected"
+    },
+    {
+      "actor": "A",
+      "call": "answer",
+      "result": "rejected"
+    }
+  ]
+}

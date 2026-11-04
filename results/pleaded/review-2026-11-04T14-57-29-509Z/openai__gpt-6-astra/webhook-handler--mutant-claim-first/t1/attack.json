@@ -1,0 +1,18 @@
+{
+  "summary": "A crash after claiming the event permanently suppresses processing, leaving the paid charge uncredited and the order pending and unshipped.",
+  "steps": [
+    [
+      {
+        "id": "S",
+        "action": "deliver",
+        "event": "charge.succeeded",
+        "retries": 1,
+        "crash": {
+          "when": "after",
+          "call": "db.insertIfAbsent",
+          "occurrence": 1
+        }
+      }
+    ]
+  ]
+}

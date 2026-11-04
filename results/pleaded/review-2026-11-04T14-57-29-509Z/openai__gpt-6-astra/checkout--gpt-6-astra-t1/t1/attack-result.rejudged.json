@@ -1,0 +1,77 @@
+{
+  "status": "confirmed",
+  "how": "as written",
+  "detail": "A answered \"declined\" after reading the order as paid",
+  "trace": [
+    {
+      "actor": "A",
+      "call": "db.transaction",
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:b6927518-ef3b-4ba3-b762-ddf6aab9cb5f\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
+    },
+    {
+      "actor": "A",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:b6927518-ef3b-4ba3-b762-ddf6aab9cb5f",
+      "result": "card_declined"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "B",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:b6927518-ef3b-4ba3-b762-ddf6aab9cb5f",
+      "result": "replayed card_declined"
+    },
+    {
+      "actor": "B",
+      "call": "db.transaction",
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:b6927518-ef3b-4ba3-b762-ddf6aab9cb5f\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"decl..."
+    },
+    {
+      "actor": "B",
+      "call": "answer",
+      "result": "declined"
+    },
+    {
+      "actor": "C",
+      "call": "db.transaction",
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:bf53ec73-d040-41fa-9673-3d95526d7b46\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"pend..."
+    },
+    {
+      "actor": "C",
+      "call": "payco.createCharge {\"amount\":2599,\"currency\":\"EUR\",\"customerId\":\"cus_1\",\"metadata\":{\"orderId\":\"o... key=checkout:bf53ec73-d040-41fa-9673-3d95526d7b46",
+      "result": "processed"
+    },
+    {
+      "actor": "C",
+      "call": "db.transaction",
+      "result": "committed checkout:attempt:o1={\"idempotencyKey\":\"checkout:bf53ec73-d040-41fa-9673-3d95526d7b46\",\"orderId\":\"..., order:o1={\"id\":\"o1\",\"customerId\":\"cus_1\",\"amount\":2599,\"currency\":\"EUR\",\"status\":\"paid\"}"
+    },
+    {
+      "actor": "C",
+      "call": "answer",
+      "result": "paid"
+    },
+    {
+      "actor": "A",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "A",
+      "call": "answer",
+      "result": "declined"
+    },
+    {
+      "actor": "final press settle 1",
+      "call": "db.transaction",
+      "result": "committed (no writes)"
+    },
+    {
+      "actor": "final press settle 1",
+      "call": "answer",
+      "result": "paid"
+    }
+  ]
+}

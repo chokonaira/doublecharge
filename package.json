@@ -19,6 +19,7 @@
     "regrade": "node --no-warnings src/cli/regrade.ts",
     "probe": "node --no-warnings src/cli/probe.ts",
     "compare": "node --no-warnings src/cli/compare.ts",
+    "power": "node --no-warnings src/cli/power.ts",
     "check": "npm run typecheck && npm test && npm run audit",
     "review": "node --no-warnings src/cli/review.ts",
     "rejudge": "node --no-warnings src/cli/rejudge.ts",

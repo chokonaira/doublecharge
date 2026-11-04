@@ -1,0 +1,33 @@
+{
+  "summary": "A stale declined attempt answers declined after its final transaction reads an order already marked paid by a newer attempt.",
+  "faults": {
+    "createCharge": ["decline"]
+  },
+  "steps": [
+    [
+      {
+        "id": "A",
+        "action": "pay",
+        "pause": {
+          "when": "before",
+          "call": "db.transaction",
+          "occurrence": 2,
+          "meanwhile": [
+            [
+              {
+                "id": "B",
+                "action": "pay"
+              }
+            ],
+            [
+              {
+                "id": "C",
+                "action": "pay"
+              }
+            ]
+          ]
+        }
+      }
+    ]
+  ]
+}

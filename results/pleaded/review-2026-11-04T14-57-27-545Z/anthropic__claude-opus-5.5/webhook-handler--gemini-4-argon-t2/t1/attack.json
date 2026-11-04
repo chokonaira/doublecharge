@@ -1,0 +1,21 @@
+{
+  "summary": "A succeeded delivery fetches the charge before a full refund, the refund event marks the order refunded, then the stale delivery's transaction reads the refunded order but still ships because it decides from its old PayCo snapshot.",
+  "steps": [
+    [
+      {
+        "id": "S",
+        "action": "deliver",
+        "event": "charge.succeeded",
+        "pause": {
+          "when": "after",
+          "call": "payco.getCharge",
+          "occurrence": 1,
+          "meanwhile": [
+            [ { "id": "X", "action": "refund", "total": 1000 } ],
+            [ { "id": "R", "action": "deliver", "event": "charge.refunded", "refundedTotal": 1000 } ]
+          ]
+        }
+      }
+    ]
+  ]
+}

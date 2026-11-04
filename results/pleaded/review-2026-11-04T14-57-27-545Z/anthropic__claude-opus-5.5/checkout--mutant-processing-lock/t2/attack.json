@@ -1,0 +1,6 @@
+{
+  "summary": "Instance is killed right after acquiring lock:o1, so the lock is never deleted and every later Pay (including the final one) throws 'payment already in progress' while the order stays pending and uncharged.",
+  "steps": [
+    [{ "id": "A", "action": "pay", "retries": 1, "crash": { "when": "after", "call": "db.insertIfAbsent", "occurrence": 1 } }]
+  ]
+}

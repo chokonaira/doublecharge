@@ -1,0 +1,62 @@
+{
+  "status": "confirmed",
+  "how": "as written",
+  "detail": "the seller's balance is 0; with 0 refunded it should be 1000",
+  "trace": [
+    {
+      "actor": "S1",
+      "call": "payco.getCharge ch_1",
+      "result": "amount 1000, refunded 0"
+    },
+    {
+      "actor": "S1",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"pending\"}"
+    },
+    {
+      "actor": "S1",
+      "call": "db.update applied:ch_1",
+      "result": "none -> {\"credited\":1000,\"refunded\":0}"
+    },
+    {
+      "actor": "S1",
+      "call": "instance killed",
+      "result": "right after the call above, before seeing how it ended"
+    },
+    {
+      "actor": "S1",
+      "call": "answer",
+      "result": "none: the connection dropped"
+    },
+    {
+      "actor": "S1 retry 1",
+      "call": "payco.getCharge ch_1",
+      "result": "amount 1000, refunded 0"
+    },
+    {
+      "actor": "S1 retry 1",
+      "call": "db.get order:o1",
+      "result": "{\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"pending\"}"
+    },
+    {
+      "actor": "S1 retry 1",
+      "call": "db.update applied:ch_1",
+      "result": "{\"credited\":1000,\"refunded\":0} -> {\"credited\":1000,\"refunded\":0}"
+    },
+    {
+      "actor": "S1 retry 1",
+      "call": "db.update order:o1",
+      "result": "{\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"pending\"} -> {\"id\":\"o1\",\"sellerId\":\"s1\",\"amount\":1000,\"currency\":\"USD\",\"status\":\"paid\"}"
+    },
+    {
+      "actor": "S1 retry 1",
+      "call": "shipping.ship o1 key=ship:o1",
+      "result": "shipped"
+    },
+    {
+      "actor": "S1 retry 1",
+      "call": "answer",
+      "result": "done"
+    }
+  ]
+}

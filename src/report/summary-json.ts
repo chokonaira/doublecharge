@@ -7,8 +7,14 @@ import type { TrialRecord, TrialStatus } from "./records.ts";
 import { wilson } from "./stats.ts";
 
 /** The published runs, by part: every number the README reports comes from these. */
-export const PART1 = ["results/2026-10-31T09-10-10-916Z", "results/dev/2026-10-30T20-05-19-347Z", "results/ordinary-pilot/2026-11-02T21-59-48-348Z"];
-export const PART2 = ["results/review-2026-10-31T09-22-41-037Z"];
+export const PART1 = [
+  "results/2026-10-31T09-10-10-916Z",
+  "results/dev/2026-10-30T20-05-19-347Z",
+  "results/ordinary-pilot/2026-11-02T21-59-48-348Z",
+  "results/stated/2026-11-04T14-43-07-693Z",
+  "results/stated/2026-11-04T14-43-09-719Z",
+];
+export const PART2 = ["results/review-2026-10-31T09-22-41-037Z", "results/pleaded/review-2026-11-04T14-57-27-545Z", "results/pleaded/review-2026-11-04T14-57-29-509Z"];
 /** Where npm run summary writes their summary, relative to the repository root. */
 export const SUMMARY_FILE = "results/summary.json";
 

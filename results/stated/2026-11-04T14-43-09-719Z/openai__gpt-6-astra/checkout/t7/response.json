@@ -1,0 +1,35 @@
+{
+  "choices": [
+    {
+      "message": {
+        "content": "```ts\ninterface Tx {\n  get<T>(key: string): T | undefined;\n  set<T>(key: string, value: T): void;\n}\n\ninterface Db {\n  transaction<T>(fn: (tx: Tx) => T): Promise<T>;\n}\n\ninterface Charge {\n  id: string;\n  status: \"succeeded\";\n}\n\ninterface ChargeParams {\n  amount: number;\n  currency: string;\n  customerId: string;\n}\n\ninterface PayCo {\n  createCharge(\n    params: ChargeParams & { idempotencyKey: string }\n  ): Promise<Charge>;\n}\n\n// Only the runtime APIs used by checkout are described here.\ninterface Ctx {\n  db: Db;\n  payco: PayCo;\n  shipping: unknown;\n}\n\ninterface Order extends ChargeParams {\n  id: string;\n  status: \"pending\" | \"paid\" | \"declined\";\n}\n\ninterface Attempt {\n  number: number;\n  params: ChargeParams;\n  idempotencyKey: string;\n  status: \"charging\" | \"declined\" | \"paid\";\n  chargeId?: string;\n}\n\ntype Selection = { paid: true } | { paid: false; attempt: Attempt };\n\nfunction isCardDeclined(error: unknown): boolean {\n  return (\n    typeof error === \"object\" &&\n    error !== null &&\n    \"code\" in error &&\n    error.code === \"card_declined\"\n  );\n}\n\nfunction assertSamePayment(order: Order, attempt: Attempt): void {\n  if (\n    order.amount !== attempt.params.amount ||\n    order.currency !== attempt.params.currency ||\n    order.customerId !== attempt.params.customerId\n  ) {\n    // An unresolved payment cannot safely be replaced with different parameters.\n    throw new Error(\"Order payment details changed during checkout\");\n  }\n}\n\nexport async function checkout(\n  orderId: string,\n  ctx: Ctx\n): Promise<\"paid\" | \"declined\"> {\n  const orderKey = `order:${orderId}`;\n  const attemptKey = `checkout:attempt:${orderId}`;\n\n  /*\n   * Keep this record durably, including after a decline. Never recycle order IDs\n   * or attempt numbers: they determine PayCo's idempotency keys.\n   *\n   * An unresolved attempt has no lease or expiration. Any instance may finish\n   * it, always using its original key and parameters.\n   */\n  const selection = await ctx.db.transaction<Selection>((tx) => {\n    const order = tx.get<Order>(orderKey);\n    if (!order) throw new Error(\"Order not found\");\n\n    // A paid order is terminal and is written only after confirmed payment.\n    if (order.status === \"paid\") return { paid: true };\n\n    const previous = tx.get<Attempt>(attemptKey);\n\n    if (previous?.status === \"paid\") {\n      throw new Error(\"Inconsistent paid order state\");\n    }\n\n    if (previous?.status === \"charging\") {\n      assertSamePayment(order, previous);\n      return { paid: false, attempt: previous };\n    }\n\n    /*\n     * Never select a previously recorded decline for a new request. We cannot\n     * know whether an HTTP response actually reached the customer, so retire\n     * the decline before returning it, even if that response might be lost.\n     */\n    const number = previous ? previous.number + 1 : 1;\n    if (!Number.isSafeInteger(number) || number < 1) {\n      throw new Error(\"Payment attempt counter exhausted\");\n    }\n\n    const attempt: Attempt = {\n      number,\n      params: {\n        amount: order.amount,\n        currency: order.currency,\n        customerId: order.customerId,\n      },\n      idempotencyKey: JSON.stringify([\"checkout-charge-v1\", orderId, number]),\n      status: \"charging\",\n    };\n\n    tx.set(attemptKey, attempt);\n    tx.set<Order>(orderKey, { ...order, status: \"pending\" });\n    return { paid: false, attempt };\n  });\n\n  if (selection.paid) return \"paid\";\n\n  const attempt = selection.attempt;\n  let charge: Charge | undefined;\n\n  // Catch only the charge call: database failures must never become declines.\n  try {\n    charge = await ctx.payco.createCharge({\n      ...attempt.params,\n      idempotencyKey: attempt.idempotencyKey,\n    });\n  } catch (error) {\n    if (!isCardDeclined(error)) {\n      // In particular, a timeout leaves the attempt unresolved. A later request\n      // safely repeats the same key instead of potentially charging twice.\n      throw error;\n    }\n  }\n\n  return ctx.db.transaction<\"paid\" | \"declined\">((tx) => {\n    const order = tx.get<Order>(orderKey);\n    if (!order) throw new Error(\"Order disappeared during checkout\");\n\n    // This request must not return declined after observing a paid order.\n    if (order.status === \"paid\") return \"paid\";\n\n    const current = tx.get<Attempt>(attemptKey);\n    if (!current || current.number < attempt.number) {\n      throw new Error(\"Payment attempt state is missing or inconsistent\");\n    }\n\n    if (charge !== undefined) {\n      // Only a confirmed decline permits advancing to another attempt.\n      if (\n        current.number !== attempt.number ||\n        current.status !== \"charging\"\n      ) {\n        throw new Error(\"Successful charge conflicts with payment state\");\n      }\n\n      assertSamePayment(order, attempt);\n      tx.set<Attempt>(attemptKey, {\n        ...current,\n        status: \"paid\",\n        chargeId: charge.id,\n      });\n      tx.set<Order>(orderKey, { ...order, status: \"paid\" });\n      return \"paid\";\n    }\n\n    if (current.status === \"paid\") {\n      throw new Error(\"Inconsistent paid order state\");\n    }\n\n    if (current.number === attempt.number) {\n      tx.set<Attempt>(attemptKey, { ...current, status: \"declined\" });\n      tx.set<Order>(orderKey, { ...order, status: \"declined\" });\n    }\n    // Otherwise, another request already recorded this decline and began a\n    // newer attempt. Do not overwrite that newer attempt or its order status.\n\n    /*\n     * Our own charge call definitively declined. At selection, this attempt\n     * was either new or unresolved; nobody could already have returned its\n     * decline, because recording the decline must precede returning it.\n     *\n     * Any newer attempt necessarily began after our selection, so any charge\n     * from it occurred after this request started. A concurrent payment after\n     * this transaction's final observation is the unavoidable allowed race.\n     */\n    return \"declined\";\n  });\n}\n```"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "model": "openai/gpt-6-astra",
+  "provider": "OpenAI",
+  "usage": {
+    "prompt_tokens": 1376,
+    "completion_tokens": 3453,
+    "total_tokens": 4829,
+    "cost": 0.174053,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 1373,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.174053,
+      "upstream_inference_prompt_cost": 0.001403,
+      "upstream_inference_completions_cost": 0.17265
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 2070,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}
