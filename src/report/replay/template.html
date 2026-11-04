@@ -4,15 +4,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;600;800&display=swap">
 <style>
-/* Layout: a rail of cases on the left, with its filters on top; the stage plays one case as a sequence diagram, with the card
-   statement and the verdict beside it, transport below. Paper, ink and a rubber stamp, like the atlas. */
+/* An app shell: a top bar, a rail of cases that scrolls on its own, and a stage that scrolls on its own.
+   The stage plays one case as a sequence diagram with the controls docked under it like a player, and
+   keeps the case file (claim, evidence, ruling, statement, verdict) beside it. Paper, ink and a rubber
+   stamp, like the atlas. On a phone the page scrolls as one column and the player opens as a sheet. */
 :root {
-  --paper: #f7f9f8;
+  --paper: #f3f6f5;
   --sheet: #ffffff;
   --ink: #14233d;
   --muted: #56667a;
-  --rule: #d2dde4;
-  --faint: #e8eef1;
+  --rule: #d6dfe5;
+  --faint: #e9eef1;
   --stamp: #b3261e;
   --stamp-wash: #f6dcd9;
   --ok: #2e6b4f;
@@ -28,159 +30,170 @@
   --text: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --row: 50px;
+  --radius: 10px;
+  --control: 8px;
+  --bar: 56px;
+  --gutter: 20px;
+  --shadow: 0 1px 2px rgb(20 35 61 / 0.05), 0 0 0 1px var(--rule);
   color-scheme: light;
   /* A double tap does not zoom the page; pinching still does, for anyone who needs it larger. */
   touch-action: manipulation;
 }
 /* Light whatever the system prefers; the viewer can switch to dark, and the page remembers. */
 :root[data-theme="dark"] {
-  --paper: #0f1a24; --sheet: #142231; --ink: #e6edf3; --muted: #9fb0c2; --rule: #2c4052; --faint: #1b2b3a;
+  --paper: #0e171f; --sheet: #15202b; --ink: #e6edf3; --muted: #9fb0c2; --rule: #2a3b4a; --faint: #1b2833;
   --stamp: #ff7468; --stamp-wash: #3a1d1f; --ok: #74c69d; --ok-wash: #16302a; --warn: #e9b44c;
   --lane-1: #8db4f0; --lane-2: #d1a3e8; --lane-3: #74d1d1; --lane-4: #e9b06a; --lane-5: #f09ab8; --lane-6: #a9d27a;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 0 0 1px var(--rule);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+html { height: 100%; }
 body {
   margin: 0;
+  min-height: 100%;
   background: var(--paper);
   color: var(--ink);
-  font: 15px/1.55 var(--text);
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  font: 14px/1.5 var(--text);
+  -webkit-font-smoothing: antialiased;
 }
 button, select, input { font: inherit; color: inherit; }
-:focus-visible { outline: 3px solid var(--lane-1); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--lane-1); outline-offset: 2px; }
 h1, h2, h3 { font-family: var(--display); font-weight: 600; line-height: 1.15; margin: 0; text-wrap: balance; }
 code, pre, .mono { font-family: var(--mono); }
+a { color: inherit; }
 
-.app { max-width: 1320px; margin: 0 auto; padding-block: 28px 64px; }
-.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 24px; padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
-.top h1 { font-size: clamp(1.7rem, 3vw, 2.3rem); letter-spacing: -0.01em; }
+/* ---- Shell ------------------------------------------------------------------------------------------ */
+.app { height: 100dvh; display: grid; grid-template-rows: var(--bar) minmax(0, 1fr); }
+.top {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 20px;
+  height: var(--bar); padding: 0 var(--gutter); padding-left: max(var(--gutter), env(safe-area-inset-left, 0px)); padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
+  background: var(--sheet); border-bottom: 1px solid var(--rule);
+}
+.top h1 { font-size: 1.3rem; letter-spacing: -0.01em; white-space: nowrap; }
 .top h1 span { color: var(--stamp); }
-.top p { margin: 0; color: var(--muted); max-width: 66ch; flex: 1 1 420px; }
-.top-actions { margin-left: auto; display: flex; align-items: center; gap: 14px; }
-.about { color: var(--lane-1); font-size: 0.88rem; font-weight: 600; text-underline-offset: 3px; }
-.about:hover { color: var(--ink); }
-.theme { border: 1px solid var(--rule); background: var(--sheet); color: var(--muted); border-radius: 999px; padding: 4px 12px; font-size: 0.82rem; cursor: pointer; }
-.theme:hover { color: var(--ink); border-color: var(--ink); }
-.theme[aria-pressed="true"] { color: var(--ink); }
+#intro-short { margin: 0; color: var(--muted); font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 1px solid var(--rule); padding-left: 20px; }
+.top-actions { display: flex; align-items: center; gap: 8px; }
+.about, .theme {
+  display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: var(--control);
+  border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); font-size: 0.82rem; font-weight: 600; text-decoration: none; cursor: pointer; white-space: nowrap;
+}
+.about:hover, .theme:hover { border-color: var(--ink); }
+.theme[aria-pressed="true"] { background: var(--faint); }
 
-.layout { display: grid; grid-template-columns: var(--rail-w, 320px) 12px minmax(0, 1fr); gap: 28px 8px; margin-top: 24px; align-items: start; }
+.layout { display: grid; grid-template-columns: var(--rail-w, 320px) 8px minmax(0, 1fr); min-height: 0; }
 
 /* The edge between the rail and the stage: drag it, or focus it and use the arrow keys, to set the rail's
    width; double-click or Enter puts it back. The stage always keeps room for the diagram. */
-.rail-resize { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); height: calc(100vh - 32px); display: grid; justify-items: center; cursor: col-resize; touch-action: none; border-radius: 6px; }
+.rail-resize { position: relative; display: grid; justify-items: center; cursor: col-resize; touch-action: none; background: var(--paper); }
 .rail-resize::before { content: ""; width: 1px; height: 100%; background: var(--rule); }
-.rail-resize::after { content: ""; position: absolute; top: 50%; width: 6px; height: 32px; margin-top: -16px; border: 1px solid var(--rule); border-radius: 3px; background: var(--sheet); }
+.rail-resize::after { content: ""; position: absolute; top: 50%; width: 4px; height: 28px; margin-top: -14px; border-radius: 2px; background: var(--rule); }
 .rail-resize:hover::before, .rail-resize:focus-visible::before, .rail-resize.dragging::before { width: 2px; background: var(--lane-1); }
-.rail-resize:hover::after, .rail-resize:focus-visible::after, .rail-resize.dragging::after { border-color: var(--lane-1); }
+.rail-resize:hover::after, .rail-resize:focus-visible::after, .rail-resize.dragging::after { background: var(--lane-1); }
 .resizing, .resizing * { cursor: col-resize !important; user-select: none; }
 
-/* The rail: a switch between the seven featured cases and every case, with the filters for every case
-   held at the top while the list scrolls under them. */
-.rail { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 32px); overflow: auto; padding: 0 4px 0 6px; margin-left: -6px; }
-.rail-head { position: sticky; top: 0; z-index: 1; background: var(--paper); display: grid; gap: 14px; padding-bottom: 14px; margin-bottom: 10px; border-bottom: 1px solid var(--rule); }
-.rail ol, .rail ul { list-style: none; margin: 0 0 22px; padding: 0; display: grid; gap: 4px; }
+/* ---- The rail: a switch between the seven featured cases and every case, with the filters for every
+   case held at the top while the list scrolls under them. ---------------------------------------- */
+.rail { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 0 12px 24px; padding-left: max(12px, env(safe-area-inset-left, 0px)); background: var(--paper); }
+.rail-head { position: sticky; top: 0; z-index: 1; background: var(--paper); display: grid; gap: 12px; padding: 14px 0 12px; margin-bottom: 4px; border-bottom: 1px solid var(--rule); }
+.rail ol, .rail ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
 .view, .opt { position: relative; }
 .view input, .opt input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
-.view { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px; border: 1px solid var(--rule); border-radius: 8px; background: var(--sheet); }
-.view span { display: flex; justify-content: center; align-items: baseline; gap: 6px; padding: 8px; border-radius: 6px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.view { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 3px; border-radius: var(--control); background: var(--faint); }
+.view span { display: flex; justify-content: center; align-items: baseline; gap: 6px; height: 30px; align-items: center; border-radius: 6px; font-size: 0.86rem; font-weight: 600; color: var(--muted); cursor: pointer; }
 .view span:hover { color: var(--ink); }
-.view input:checked + span { background: var(--ink); color: var(--paper); }
-.view i, .opt i { font-style: normal; font-weight: 400; font-size: 0.8em; font-variant-numeric: tabular-nums; }
-.view input:focus-visible + span, .opt input:focus-visible + span { outline: 3px solid var(--lane-1); outline-offset: 2px; }
-.view-note { margin: 0; color: var(--muted); font-size: 0.86rem; }
-.facets { display: grid; gap: 12px; }
+.view input:checked + span { background: var(--sheet); color: var(--ink); box-shadow: var(--shadow); }
+.view i, .opt i { font-style: normal; font-weight: 500; font-size: 0.74rem; font-variant-numeric: tabular-nums; color: var(--muted); }
+.view input:checked + span i { color: var(--ink); }
+.view input:focus-visible + span, .opt input:focus-visible + span { outline: 2px solid var(--lane-1); outline-offset: 2px; }
+.view-note { margin: 0; color: var(--muted); font-size: 0.82rem; }
+.facets { display: grid; gap: 10px; }
 .facets fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
-.facets legend { padding: 0; margin-bottom: 6px; font-size: 0.82rem; font-weight: 600; }
+.facets legend { padding: 0; margin-bottom: 6px; font-size: 0.76rem; font-weight: 600; color: var(--muted); }
 .opts { display: flex; flex-wrap: wrap; gap: 6px; }
-.opt span { display: inline-flex; align-items: baseline; gap: 6px; padding: 4px 11px; border: 1px solid var(--rule); border-radius: 999px; background: var(--sheet); font-size: 0.85rem; cursor: pointer; }
+.opt span { display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 10px; border: 1px solid var(--rule); border-radius: 999px; background: var(--sheet); font-size: 0.8rem; cursor: pointer; }
 .opt span:hover { border-color: var(--ink); }
 .opt input:checked + span { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.opt input:checked + span i { color: var(--paper); opacity: 0.8; }
 .opt.empty span { color: var(--muted); border-style: dashed; }
-.count { display: flex; justify-content: space-between; gap: 10px; margin: 0; color: var(--muted); font-size: 0.82rem; }
-.clear { border: 0; background: none; padding: 0; color: var(--lane-1); text-decoration: underline; cursor: pointer; font-size: 0.82rem; }
-.none { color: var(--muted); font-size: 0.88rem; margin: 4px 0 0; }
+.count { display: flex; justify-content: space-between; gap: 10px; margin: 0; color: var(--muted); font-size: 0.78rem; }
+.clear { border: 0; background: none; padding: 0; color: var(--lane-1); text-decoration: underline; cursor: pointer; font-size: 0.78rem; }
+.none { color: var(--muted); font-size: 0.86rem; margin: 12px 4px 0; }
 /* On a short screen the filters would cover the list they filter, so they scroll away with it. */
 @media (max-height: 700px) { .rail-head { position: static; } }
-/* A short laptop screen spends less of its height above the case, so more of the run fits in the first screen. */
-@media (max-height: 820px) and (min-width: 861px) {
-  .app { padding-top: 14px; }
-  .top { padding-bottom: 12px; }
-  .top p { font-size: 0.88rem; }
-  .layout { margin-top: 14px; }
-  .stage { gap: 12px; }
-  .case-head .caption { font-size: 0.95rem; }
-}
 @media (forced-colors: active) {
   .view input:checked + span, .opt input:checked + span { forced-color-adjust: none; background: Highlight; color: HighlightText; border-color: Highlight; }
 }
 .case-btn {
-  width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: 6px;
-  padding: 8px 10px; cursor: pointer; display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: 2px 10px; align-items: baseline;
+  width: 100%; text-align: left; background: none; border: 0; border-radius: var(--control);
+  padding: 9px 10px 9px 12px; cursor: pointer; display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 1px 10px; align-items: baseline; position: relative;
 }
 .case-btn:hover { background: var(--faint); }
-.case-btn[aria-current="true"] { background: var(--sheet); border-color: var(--rule); }
-.case-btn .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--stamp); align-self: center; }
+.case-btn[aria-current="true"] { background: var(--sheet); box-shadow: var(--shadow); }
+.case-btn[aria-current="true"]::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: var(--ink); }
+.case-btn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--stamp); align-self: center; }
 .case-btn .dot.held { background: var(--ok); }
-.case-btn .dot.withdrawn { background: none; border: 2px solid var(--muted); }
-.case-btn b { font-weight: 600; overflow-wrap: anywhere; }
-.case-btn small { grid-column: 2; color: var(--muted); font-size: 0.8rem; line-height: 1.35; overflow-wrap: anywhere; }
+.case-btn .dot.withdrawn { background: none; border: 2px solid var(--muted); width: 9px; height: 9px; }
+.case-btn b { font-weight: 600; font-size: 0.88rem; line-height: 1.3; overflow-wrap: anywhere; }
+.case-btn small { grid-column: 2; color: var(--muted); font-size: 0.76rem; line-height: 1.35; overflow-wrap: anywhere; }
 .mobile-pick { display: none; }
 
-/* The stage */
-/* On a wide stage the case plays in the first screen: the title, controls and diagram on the left, and
-   the case file on the right (claim, evidence, ruling, statement, verdict). On a narrow one everything
-   is one column, in reading order. */
-.stage { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; container-type: inline-size; }
+/* ---- The stage ------------------------------------------------------------------------------------- */
+/* On a wide stage the case plays in the first screen: the title, the diagram and its player on the
+   left, and the case file on the right. On a narrow one everything is one column, in reading order. */
+.stage { min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; display: grid; align-content: start; gap: 16px; padding: 18px var(--gutter) 28px; padding-right: max(var(--gutter), env(safe-area-inset-right, 0px)); container-type: inline-size; }
 .stage > *, .stage-grid > *, .stage-main > *, .stage-side > * { min-width: 0; }
-.stage-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.stage-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .stage-main, .stage-side { display: contents; }
 .case-head { order: 1; }
 .court { order: 2; }
-.transport { order: 3; }
-.narration { order: 4; }
-#stage-sheet { order: 5; }
+.narration { order: 3; }
+#stage-sheet { order: 4; }
+.transport { order: 5; }
 .keys { order: 6; }
 .side { order: 7; }
 @container (min-width: 860px) {
-  .stage-grid { grid-template-columns: minmax(0, 1fr) 290px; align-items: start; }
-  .stage-main { display: grid; gap: 18px; align-content: start; }
-  .stage-side { display: grid; gap: 14px; align-content: start; }
+  .stage-grid { grid-template-columns: minmax(0, 1fr) 300px; align-items: start; }
+  .stage-main { display: grid; gap: 12px; align-content: start; }
+  .stage-side { display: grid; gap: 12px; align-content: start; }
   .stage-side .court { grid-template-columns: minmax(0, 1fr); }
   .stage-side .court > div + div { border-left: 0; border-top: 1px solid var(--rule); }
   .stage-side .side { grid-template-columns: minmax(0, 1fr); }
   /* The claim in the reviewer's own words, held to five lines; the whole of it is its tooltip, and what a screen reader reads. */
   .stage-side .court q { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; line-clamp: 5; overflow: hidden; }
   /* Two lines whatever the step says, so the diagram below never moves while a case plays. */
-  .narration { height: 3.1em; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+  .narration { height: 3em; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
+  /* The diagram and its player read as one instrument. */
+  #stage-sheet { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+  .transport { margin-top: -12px; border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
 }
-.case-head { display: grid; gap: 8px; }
-.case-head h2 { font-size: clamp(1.5rem, 2.6vw, 2.05rem); }
-.case-head .caption { margin: 0; max-width: 72ch; font-size: 1.02rem; }
+.case-head { display: grid; gap: 6px; }
+.case-head h2 { font-size: clamp(1.4rem, 2.2vw, 1.85rem); letter-spacing: -0.01em; }
+.case-head .caption { margin: 0; max-width: 78ch; font-size: 0.95rem; color: var(--muted); line-height: 1.5; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { border: 1px solid var(--rule); border-radius: 999px; padding: 1px 10px; font-size: 0.8rem; color: var(--muted); background: var(--sheet); }
+.chip { border: 1px solid var(--rule); border-radius: 999px; padding: 1px 9px; font-size: 0.74rem; font-weight: 600; color: var(--muted); background: var(--sheet); white-space: nowrap; }
+.chip:first-child { color: var(--ink); }
 
 /* Part 2: claim, evidence, ruling */
-.court { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--rule); border-radius: 8px; background: var(--sheet); overflow: hidden; }
-.court > div { padding: 10px 14px; display: grid; gap: 2px; align-content: start; min-width: 0; }
+.court { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-radius: var(--radius); background: var(--sheet); box-shadow: var(--shadow); overflow: hidden; }
+.court > div { padding: 12px 14px; display: grid; gap: 3px; align-content: start; min-width: 0; }
 .court > div + div { border-left: 1px solid var(--rule); }
-.court .k { font-size: 0.78rem; color: var(--muted); }
-.court .v { font-weight: 600; }
-.court q { font-style: italic; color: var(--muted); font-size: 0.88rem; overflow-wrap: anywhere; }
+.court .k { font-size: 0.74rem; font-weight: 600; color: var(--muted); }
+.court .v { font-weight: 600; font-size: 0.92rem; line-height: 1.35; }
+.court q { font-style: italic; color: var(--muted); font-size: 0.84rem; line-height: 1.45; overflow-wrap: anywhere; }
 .court .v.broken { color: var(--stamp); }
 .court .v.held { color: var(--ok); }
 
-.sheet { background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; position: relative; }
+.sheet { background: var(--sheet); border-radius: var(--radius); box-shadow: var(--shadow); position: relative; }
 
 /* Sequence diagram */
-.diagram-scroll { overflow: auto; max-height: min(64vh, 580px); border-radius: 8px; overscroll-behavior: contain; }
+.diagram-scroll { overflow: auto; max-height: min(64vh, 580px); border-radius: inherit; overscroll-behavior: contain; }
 .diagram { --cols: 4; position: relative; min-width: calc(var(--cols) * 104px); padding: 0 0 12px; }
 .lanes, .row { display: grid; grid-template-columns: repeat(var(--cols), minmax(104px, 1fr)); }
-.lanes { position: sticky; top: 0; z-index: 2; background: var(--sheet); border-bottom: 1px solid var(--rule); border-radius: 8px 8px 0 0; }
-.lane-head { padding: 10px 6px 8px; text-align: center; font-size: 0.82rem; font-weight: 600; overflow-wrap: anywhere; line-height: 1.25; }
-.lane-head small { display: block; font-weight: 400; color: var(--muted); font-size: 0.74rem; }
+.lanes { position: sticky; top: 0; z-index: 2; background: var(--sheet); border-bottom: 1px solid var(--rule); }
+.lane-head { padding: 10px 6px 8px; text-align: center; font-size: 0.8rem; font-weight: 600; overflow-wrap: anywhere; line-height: 1.25; }
+.lane-head small { display: block; font-weight: 400; color: var(--muted); font-size: 0.7rem; }
 .lane-head.svc { font-family: var(--mono); font-weight: 500; }
 .lifelines { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--cols), minmax(104px, 1fr)); pointer-events: none; }
 .lifelines span { border-left: 1px dashed var(--rule); margin-left: 50%; }
@@ -216,11 +229,11 @@ code, pre, .mono { font-family: var(--mono); }
 @keyframes pop { from { transform: scale(2.2); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* Statement and verdict */
-.side { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-.statement { padding: 16px 16px 14px; }
-.statement h3 { font-size: 1.02rem; }
-.statement .sub { color: var(--muted); font-size: 0.8rem; margin: 0 0 10px; }
-.lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-family: var(--mono); font-size: 0.8rem; min-height: 64px; }
+.side { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.statement { padding: 14px 16px 14px; }
+.statement h3 { font-family: var(--text); font-size: 0.74rem; font-weight: 600; color: var(--muted); }
+.statement .sub { color: var(--muted); font-size: 0.8rem; margin: 2px 0 10px; }
+.lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-family: var(--mono); font-size: 0.78rem; min-height: 64px; }
 .lines li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 5px 0; border-bottom: 1px dashed var(--faint); }
 .lines li span:first-child { overflow-wrap: anywhere; }
 .lines li .amt { font-variant-numeric: tabular-nums; }
@@ -233,20 +246,20 @@ code, pre, .mono { font-family: var(--mono); }
 .total { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; padding-top: 8px; border-top: 2px solid var(--ink); font-family: var(--mono); font-size: 0.84rem; font-variant-numeric: tabular-nums; }
 .total.bad { color: var(--stamp); border-top-color: var(--stamp); }
 
-.verdict { padding: 16px 16px 14px; min-height: 132px; display: grid; gap: 10px; align-content: start; overflow: hidden; }
-.verdict .k { color: var(--muted); font-size: 0.8rem; }
+.verdict { padding: 14px 16px 14px; min-height: 132px; display: grid; gap: 10px; align-content: start; overflow: hidden; }
+.verdict .k { color: var(--muted); font-size: 0.74rem; font-weight: 600; }
 .stamp {
   justify-self: start; transform: rotate(-6deg); margin: 6px 0 4px 4px;
-  font: 800 1.15rem/1.1 var(--text); text-transform: uppercase; letter-spacing: 0.08em;
+  font: 800 1.1rem/1.1 var(--text); text-transform: uppercase; letter-spacing: 0.08em;
   color: var(--stamp); border: 3px double var(--stamp); border-radius: 6px; padding: 8px 12px; max-width: 100%;
   background: color-mix(in srgb, var(--stamp-wash) 55%, transparent);
 }
 .stamp.held { color: var(--ok); border-color: var(--ok); background: color-mix(in srgb, var(--ok-wash) 55%, transparent); }
-.stamp.pending { color: var(--muted); border-color: var(--rule); background: none; transform: none; letter-spacing: 0.02em; text-transform: none; font-weight: 600; font-size: 0.95rem; border-style: dashed; }
+.stamp.pending { color: var(--muted); border-color: var(--rule); background: none; transform: none; letter-spacing: 0.02em; text-transform: none; font-weight: 600; font-size: 0.9rem; border-style: dashed; }
 .stamp.withdrawn { position: relative; }
 .stamp.withdrawn::after { content: ""; position: absolute; left: -6px; right: -6px; top: 50%; border-top: 3px solid var(--ink); transform: rotate(-4deg); }
-.withdrawn-note { color: var(--ink); font-weight: 600; font-size: 0.88rem; margin: 0; }
-.grader-words { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); margin: 0; overflow-wrap: anywhere; }
+.withdrawn-note { color: var(--ink); font-weight: 600; font-size: 0.86rem; margin: 0; }
+.grader-words { font-family: var(--mono); font-size: 0.76rem; color: var(--muted); margin: 0; overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: no-preference) {
   .stamp.land { animation: slam 420ms cubic-bezier(.2, 1.4, .4, 1) both; }
   .sheet.shake { animation: shake 260ms 180ms ease-out; }
@@ -254,18 +267,19 @@ code, pre, .mono { font-family: var(--mono); }
 @keyframes slam { from { transform: scale(2.4) rotate(-16deg); opacity: 0; } 60% { opacity: 1; } to { transform: scale(1) rotate(-6deg); opacity: 1; } }
 @keyframes shake { 0%, 100% { transform: none; } 30% { transform: translate(2px, 1px); } 60% { transform: translate(-2px, -1px); } }
 
-/* Transport */
-.transport { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
-.transport button { border: 1px solid var(--rule); background: var(--sheet); border-radius: 6px; padding: 6px 12px; cursor: pointer; min-height: 36px; }
-.transport button:hover { border-color: var(--ink); }
-.transport .play { background: var(--ink); color: var(--paper); border-color: var(--ink); font-weight: 600; min-width: 96px; }
-.transport input[type="range"] { flex: 1 1 120px; min-width: 80px; accent-color: var(--stamp); }
-.transport select { border: 1px solid var(--rule); background: var(--sheet); border-radius: 6px; padding: 5px 6px; }
-.step-count { font-family: var(--mono); font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-.narration { margin: 0; min-height: 3.1em; font-size: 1.05rem; max-width: 80ch; }
+/* The player: docked under the diagram on a wide stage, a bar of its own on a phone. */
+.transport { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 12px; background: var(--sheet); border-radius: var(--radius); box-shadow: var(--shadow); }
+.transport button { border: 1px solid var(--rule); background: var(--sheet); border-radius: var(--control); width: 38px; height: 36px; padding: 0; display: inline-grid; place-items: center; cursor: pointer; font-size: 0.9rem; color: var(--ink); }
+.transport button:hover { border-color: var(--ink); background: var(--faint); }
+.transport .play { width: auto; min-width: 92px; padding: 0 16px; background: var(--ink); color: var(--paper); border-color: var(--ink); font-weight: 600; border-radius: 999px; }
+.transport .play:hover { background: var(--ink); opacity: 0.92; }
+.transport input[type="range"] { flex: 1 1 140px; min-width: 100px; accent-color: var(--stamp); margin: 0 4px; }
+.transport select { border: 1px solid var(--rule); background: var(--sheet); border-radius: var(--control); height: 36px; padding: 0 8px; font-size: 0.86rem; }
+.step-count { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 5.5ch; text-align: right; }
+.narration { margin: 0; min-height: 3em; font-size: 1rem; line-height: 1.5; max-width: 80ch; }
 .narration b { font-weight: 600; }
-.keys { color: var(--muted); font-size: 0.8rem; margin: 0; }
-.keys kbd { font-family: var(--mono); font-size: 0.74rem; border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--sheet); }
+.keys { color: var(--muted); font-size: 0.76rem; margin: 0; }
+.keys kbd { font-family: var(--mono); font-size: 0.7rem; border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--sheet); }
 
 /* On a phone the player opens as a sheet from the bottom, so the run and the money it moves share one
    screen: the controls, the narration, the diagram, and the statement's total with the verdict below. */
@@ -279,12 +293,15 @@ code, pre, .mono { font-family: var(--mono); }
 .player-head h2 { font-size: 1.12rem; }
 .player-close { border: 1px solid var(--rule); background: var(--sheet); border-radius: 999px; width: 40px; height: 40px; font-size: 1rem; cursor: pointer; }
 .player-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
-.player-body #stage-sheet { flex: 1; min-height: 0; display: flex; }
+/* In the sheet: the diagram takes the height, the narration sits under it, and the controls are at the bottom, under the thumb. */
+.player-body #stage-sheet { flex: 1; min-height: 0; display: flex; order: 0; }
+.player-body .narration { order: 1; }
+.player-body .transport { order: 2; padding: 8px 0 0; background: none; box-shadow: none; border-radius: 0; }
 .player-body .diagram-scroll { flex: 1; height: auto !important; max-height: none; }
 .player-body #b-start, .player-body #b-end { display: none; }
-.player-body .narration { height: 3.1em; min-height: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; font-size: 0.98rem; }
+.player-body .narration { height: 3em; min-height: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; font-size: 0.95rem; }
 .player-money { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; border-top: 1px solid var(--rule); padding-top: 10px; }
-.player-money .k { grid-column: 1; color: var(--muted); font-size: 0.78rem; }
+.player-money .k { grid-column: 1; color: var(--muted); font-size: 0.76rem; font-weight: 600; }
 .player-money .total { grid-column: 1; margin: 0; padding: 0; border: 0; }
 .player-money .total span:last-child { white-space: nowrap; }
 .player-money .stamp { grid-column: 2; grid-row: 1 / span 2; margin: 0; font-size: 0.9rem; padding: 6px 10px; max-width: 48vw; white-space: normal; }
@@ -318,16 +335,17 @@ code, pre, .mono { font-family: var(--mono); }
 }
 @keyframes dim { from { opacity: 0; } to { opacity: 1; } }
 
-/* Evidence */
+/* ---- Evidence --------------------------------------------------------------------------------------- */
 .evidence { padding: 0; }
-.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--rule); padding: 6px 8px 0; flex-wrap: wrap; }
-.tabs button { border: 0; background: none; padding: 8px 12px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); }
-.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--stamp); font-weight: 600; }
-.panel { padding: 14px 16px; }
-.panel p { margin: 0 0 10px; max-width: 75ch; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--rule); padding: 6px 10px 0; flex-wrap: wrap; }
+.tabs button { border: 0; background: none; padding: 9px 12px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); font-weight: 600; font-size: 0.86rem; }
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--stamp); }
+.panel { padding: 14px 16px 16px; }
+.panel p { margin: 0 0 10px; max-width: 75ch; color: var(--muted); font-size: 0.86rem; }
 /* The code, the attack and the trace read like an editor: a dark pane in either theme, with line numbers
    that are not copied and the colours of VS Code's dark theme. */
-.editor { background: #1e1e1e; border: 1px solid #2b2b2b; border-radius: 8px; overflow: hidden; color-scheme: dark; }
+.editor { background: #1e1e1e; border: 1px solid #2b2b2b; border-radius: var(--control); overflow: hidden; color-scheme: dark; }
 .editor-bar { display: flex; background: #252526; border-bottom: 1px solid #2b2b2b; }
 .editor-tab { font-family: var(--mono); font-size: 0.75rem; color: #e0e0e0; background: #1e1e1e; padding: 7px 14px; border-right: 1px solid #2b2b2b; border-top: 2px solid #3794ff; }
 .panel pre { margin: 0; max-height: 460px; overflow: auto; font-size: 0.8rem; line-height: 1.6; background: #1e1e1e; color: #d4d4d4; padding: 12px 16px 14px 0; tab-size: 2; counter-reset: line; }
@@ -342,34 +360,42 @@ code, pre, .mono { font-family: var(--mono); }
 .tok-prop { color: #9cdcfe; }
 .tok-bad { color: #f48771; }
 .tok-ok { color: #89d185; }
-.foot { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.82rem; display: grid; gap: 4px; }
-.foot p { margin: 0; max-width: 90ch; }
-#intro-short { display: none; }
 
+/* ---- Footer: the full account of the page, at the end of the stage ----------------------------------- */
+.foot { margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.8rem; display: grid; gap: 6px; }
+.foot p { margin: 0; max-width: 90ch; }
+
+/* ---- A phone: one column that scrolls as a page, and the player as a sheet --------------------------- */
 @media (max-width: 860px) {
-  .layout { grid-template-columns: minmax(0, 1fr); }
+  .app { height: auto; display: block; }
+  .top { position: sticky; top: 0; z-index: 3; grid-template-columns: minmax(0, 1fr) auto; height: 52px; gap: 12px; padding: 0 16px; }
+  .top h1 { font-size: 1.15rem; }
+  #intro-short { display: none; }
+  .about { display: none; }
+  .layout { display: block; }
   .rail, .rail-resize { display: none; }
+  .stage { overflow: visible; display: grid; gap: 14px; padding: 14px 16px 28px; }
   .mobile-pick { display: grid; gap: 6px; }
-  .mobile-pick select { width: 100%; border: 1px solid var(--rule); background: var(--sheet); border-radius: 6px; padding: 8px; }
+  .mobile-pick label { font-size: 0.76rem; font-weight: 600; color: var(--muted); }
+  .mobile-pick select { width: 100%; border: 1px solid var(--rule); background: var(--sheet); border-radius: var(--control); height: 44px; padding: 0 10px; box-shadow: var(--shadow); }
   .court { grid-template-columns: minmax(0, 1fr); }
   .court > div + div { border-left: 0; border-top: 1px solid var(--rule); }
   .keys { display: none; }
-  /* The two-sentence intro, so the first case starts above the fold. */
-  #intro { display: none; }
-  #intro-short { display: block; }
   /* Every lane fits the screen, so the whole run is in view; long names are cut with an ellipsis. */
   .diagram { min-width: 0; }
   .lanes, .row, .lifelines { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
   .lane-head, .lane-head small { overflow-wrap: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .watch[hidden] { display: none; }
-  .watch { display: inline-flex; justify-self: start; align-items: center; gap: 8px; margin-top: 4px; border: 0; border-radius: 999px; background: var(--ink); color: var(--paper); font-weight: 600; font-size: 1rem; padding: 12px 22px; cursor: pointer; }
+  .watch { display: inline-flex; justify-self: start; align-items: center; gap: 8px; margin-top: 4px; border: 0; border-radius: 999px; background: var(--ink); color: var(--paper); font-weight: 600; font-size: 1rem; height: 46px; padding: 0 22px; cursor: pointer; }
+  .transport button { width: 44px; height: 44px; }
+  .transport .play { min-width: 100px; }
+  .transport select { height: 44px; }
 }
 </style>
 
 <div class="app">
   <header class="top">
     <h1>DoubleCharge <span>Replay</span></h1>
-    <p id="intro">Every failure and every reviewer’s attack that ran in the final runs, played back call by call from the grader’s own traces.</p>
     <p id="intro-short"></p>
     <div class="top-actions">
       <a class="about" href="https://github.com/chokonaira/doublecharge#readme">How this eval works</a>
@@ -413,16 +439,6 @@ code, pre, .mono { font-family: var(--mono); }
             <button type="button" class="watch" id="b-watch" aria-haspopup="dialog">▶ Watch it run</button>
           </div>
 
-          <div class="transport" id="transport">
-            <button type="button" id="b-start" aria-label="Back to the start">⏮</button>
-            <button type="button" id="b-back" aria-label="One step back">◀</button>
-            <button type="button" class="play" id="b-play">Replay</button>
-            <button type="button" id="b-fwd" aria-label="One step forward">▶</button>
-            <button type="button" id="b-end" aria-label="Jump to the end">⏭</button>
-            <input type="range" id="scrub" min="0" max="0" value="0" aria-label="Step">
-            <span class="step-count" id="stepcount"></span>
-            <select id="speed" aria-label="Speed"><option value="1300">Slow</option><option value="750" selected>Normal</option><option value="350">Fast</option></select>
-          </div>
           <p class="narration" id="narration" aria-live="polite"></p>
           <div class="sheet" id="stage-sheet">
             <div class="diagram-scroll" id="diagram-scroll">
@@ -432,6 +448,16 @@ code, pre, .mono { font-family: var(--mono); }
                 <div class="rows" id="rows"></div>
               </div>
             </div>
+          </div>
+          <div class="transport" id="transport">
+            <button type="button" id="b-start" aria-label="Back to the start">⏮</button>
+            <button type="button" id="b-back" aria-label="One step back">◀</button>
+            <button type="button" class="play" id="b-play">Replay</button>
+            <button type="button" id="b-fwd" aria-label="One step forward">▶</button>
+            <button type="button" id="b-end" aria-label="Jump to the end">⏭</button>
+            <input type="range" id="scrub" min="0" max="0" value="0" aria-label="Step">
+            <span class="step-count" id="stepcount"></span>
+            <select id="speed" aria-label="Speed"><option value="1300">Slow</option><option value="750" selected>Normal</option><option value="350">Fast</option></select>
           </div>
           <p class="keys"><kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> step · <kbd>[</kbd> <kbd>]</kbd> previous or next case</p>
         </div>
@@ -469,6 +495,11 @@ code, pre, .mono { font-family: var(--mono); }
         <div class="panel" role="tabpanel" id="p-attack" hidden><p id="attack-note"></p><div class="editor"><div class="editor-bar"><span class="editor-tab">attack.json</span></div><pre id="attack"></pre></div></div>
         <div class="panel" role="tabpanel" id="p-trace" hidden><p>The grader’s trace of this run, exactly as recorded: who made each call, the call, and what came back.</p><div class="editor"><div class="editor-bar"><span class="editor-tab">trace.log</span></div><pre id="trace"></pre></div></div>
       </section>
+
+      <footer class="foot" id="foot-wrap">
+        <p id="intro"></p>
+        <div id="foot"></div>
+      </footer>
     </main>
   </div>
 
@@ -481,8 +512,6 @@ code, pre, .mono { font-family: var(--mono); }
     <div class="player-body" id="player-body"></div>
     <div class="player-money" id="player-money" aria-live="polite"><span class="k" id="player-money-k"></span></div>
   </dialog>
-
-  <footer class="foot" id="foot"></footer>
 </div>
 
 <script id="data" type="application/json">/*DATA*/</script>

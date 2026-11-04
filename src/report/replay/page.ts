@@ -279,7 +279,8 @@ function fitDiagram(): void {
   for (const r of rows) r.hidden = false;
   const full = box.scrollHeight;
   rows.forEach((r, i) => (r.hidden = hidden[i]!));
-  const room = innerHeight - (box.getBoundingClientRect().top + scrollY) - 20;
+  // The player bar docked under the diagram stays in the first screen too.
+  const room = innerHeight - (box.getBoundingClientRect().top + scrollY) - 20 - $("transport").offsetHeight - 12;
   // Either way the height is fixed while a case plays, so the page below never moves as rows appear.
   const most = room >= FIT_MIN ? room : parseFloat(getComputedStyle(box).maxHeight) || full;
   box.style.height = `${Math.min(full, most)}px`;
