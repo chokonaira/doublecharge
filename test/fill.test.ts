@@ -48,6 +48,7 @@ describe("fill", () => {
     assert.throws(() => fillRun(main, [run({ maxTokens: 100, commit: "def5678" }, [trial(1, "pass")])], render), /same commit and settings/);
     assert.throws(() => fillRun(main, [run({ maxTokens: 200 }, [trial(1, "pass")])], render), /same commit and settings/);
     assert.throws(() => fillRun(main, [run({ maxTokens: 100, promptVariant: "ordinary" }, [trial(1, "pass")])], render), /same commit and settings/);
+    assert.throws(() => fillRun(main, [run({ maxTokens: 100, codeVariant: "pleaded" }, [trial(1, "pass")])], render), /same commit and settings/);
     const fill = run({ maxTokens: 100 }, [trial(1, "pass")]);
     fillRun(main, [fill], render);
     assert.throws(() => fillRun(main, [fill], render), /already merged/);

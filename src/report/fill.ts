@@ -19,6 +19,8 @@ interface Manifest {
   /** Part 2 runs only. */
   samples?: string[];
   schedules?: number;
+  /** Part 2 runs only; runs from before code variants existed showed plain code. */
+  codeVariant?: string;
   /** Part 1 runs only. */
   maxTokens?: number;
   /** Part 1 runs only; runs from before variants existed were "warned". */
@@ -72,7 +74,8 @@ export function fillRun(runDir: string, fillDirs: string[], render: (records: An
       isReview(fill) === isReview(manifest) &&
       fill.schedules === manifest.schedules &&
       fill.maxTokens === manifest.maxTokens &&
-      (fill.promptVariant ?? "warned") === (manifest.promptVariant ?? "warned");
+      (fill.promptVariant ?? "warned") === (manifest.promptVariant ?? "warned") &&
+      (fill.codeVariant ?? "plain") === (manifest.codeVariant ?? "plain");
     if (!same) throw new Error(`${id} was not run at the same commit and settings as this run`);
     const replaced: string[] = [];
     const discarded: string[] = [];

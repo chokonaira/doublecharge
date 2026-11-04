@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ReviewRecord } from "../review/records.ts";
+import { codeVariant, type CodeVariant } from "../review/prompt.ts";
 import { promptVariant, type PromptVariant } from "../tasks/helpers.ts";
 import type { TrialRecord, TrialStatus } from "./records.ts";
 import { wilson } from "./stats.ts";
@@ -27,6 +28,8 @@ interface Manifest {
   /** Part 2 runs only. */
   samples?: string[];
   schedules?: number;
+  /** Part 2 runs only; runs from before code variants existed showed plain code. */
+  codeVariant?: string;
 }
 
 const read = <T>(path: string): T => JSON.parse(readFileSync(path, "utf8")) as T;
@@ -142,6 +145,7 @@ export interface WritingRun extends RunHeader {
 
 export interface ReviewingRun extends RunHeader {
   part: "reviewing";
+  codeVariant: CodeVariant;
   samples: number;
   trials: number;
   maxTokens?: number;
@@ -289,6 +293,7 @@ export function summarizeRun(root: string, run: string): RunSummary {
       directory: run,
       part: "reviewing",
       ...about,
+      codeVariant: codeVariant(manifest.codeVariant),
       models,
       samples: manifest.samples.length,
       trials: manifest.trials,

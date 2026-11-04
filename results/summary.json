@@ -603,6 +603,7 @@
       "graderHash": "b09a070be733729ebb6a9c6499fd789a4c09fc24f55c796bf67cdffe1d7a714f",
       "started": "2026-10-31T09:22:41.038Z",
       "node": "v22.22.3",
+      "codeVariant": "plain",
       "models": [
         "anthropic/claude-opus-5.5",
         "openai/gpt-6-astra",
