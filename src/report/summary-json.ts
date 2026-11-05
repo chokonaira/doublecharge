@@ -14,7 +14,12 @@ export const PART1 = [
   "results/stated/2026-11-04T14-43-07-693Z",
   "results/stated/2026-11-04T14-43-09-719Z",
 ];
-export const PART2 = ["results/review-2026-10-31T09-22-41-037Z", "results/pleaded/review-2026-11-04T14-57-27-545Z", "results/pleaded/review-2026-11-04T14-57-29-509Z"];
+export const PART2 = [
+  "results/review-2026-10-31T09-22-41-037Z",
+  "results/dev/review-2026-10-30T23-07-33-844Z",
+  "results/pleaded/review-2026-11-04T14-57-27-545Z",
+  "results/pleaded/review-2026-11-04T14-57-29-509Z",
+];
 /** Where npm run summary writes their summary, relative to the repository root. */
 export const SUMMARY_FILE = "results/summary.json";
 
